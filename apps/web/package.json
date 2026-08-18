@@ -1,0 +1,7 @@
+{
+  "name": "@jobpilot/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JobPilot web app (React + Vite). Scaffolded in build step 3."
+}

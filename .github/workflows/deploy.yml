@@ -1,0 +1,17 @@
+# Deploy jobs are filled in at build step 11 (Vercel frontend, Railway/Fly API + worker).
+# This file exists so the workflow path matches the monorepo spec from day one.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    name: Deploy (not configured yet)
+    runs-on: ubuntu-latest
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Deploy pipeline lands with production hosting."

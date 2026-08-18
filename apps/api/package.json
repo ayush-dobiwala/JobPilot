@@ -1,0 +1,7 @@
+{
+  "name": "@jobpilot/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JobPilot API (Bun + Hono + Drizzle). Scaffolded in build step 2."
+}

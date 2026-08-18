@@ -1,0 +1,31 @@
+{
+  "name": "@jobpilot/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@jobpilot/config": "workspace:*",
+    "@types/node": "^24.3.0",
+    "eslint": "^9.33.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

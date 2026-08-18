@@ -1,0 +1,6 @@
+{
+  "name": "@jobpilot/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "JobPilot Expo app. Phase 2 — reuses @jobpilot/shared-types and the same API."
+}

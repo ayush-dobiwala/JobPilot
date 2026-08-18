@@ -1,0 +1,6 @@
+{
+  "name": "@jobpilot/worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Python FastAPI + Selenium automation worker. Scrapers and autofill land in build step 6."
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+.turbo
+coverage
+bun.lock
+*.md
+apps/worker/.venv
+**/*.py
