@@ -109,6 +109,15 @@ cp .env.example .env
 bun dev
 ```
 
+API (after `DATABASE_URL` is set):
+
+```bash
+bun run --filter @jobpilot/api db:migrate
+bun run --filter @jobpilot/api dev
+```
+
+The API listens on `http://localhost:3001`.
+
 Worker Python deps (when the worker is implemented):
 
 ```bash
