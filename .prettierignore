@@ -6,3 +6,4 @@ bun.lock
 *.md
 apps/worker/.venv
 **/*.py
+apps/api/src/db/migrations

@@ -3,5 +3,35 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "JobPilot API (Bun + Hono + Drizzle). Scaffolded in build step 2."
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "tsc --project tsconfig.json --noEmit",
+    "start": "bun run src/index.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@clerk/backend": "^2.18.0",
+    "@jobpilot/shared-types": "workspace:*",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.4",
+    "hono": "^4.9.4",
+    "postgres": "^3.4.7",
+    "svix": "^1.76.1"
+  },
+  "devDependencies": {
+    "@jobpilot/config": "workspace:*",
+    "@types/bun": "^1.2.20",
+    "@types/node": "^24.3.0",
+    "drizzle-kit": "^0.31.4",
+    "eslint": "^9.33.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
 }
