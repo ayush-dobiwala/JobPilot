@@ -49,10 +49,11 @@ describe("clerk webhook", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(users.users.get("user_123")).toEqual({
+    expect(users.users.get("user_123")).toMatchObject({
       id: "user_123",
       email: "ada@example.com",
       name: "Ada Lovelace",
+      plan: "free",
     });
   });
 

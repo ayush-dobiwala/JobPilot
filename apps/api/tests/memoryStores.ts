@@ -5,6 +5,7 @@ import type {
   ListApplicationsQuery,
   ListApplicationsResponse,
   UpdateApplicationRequest,
+  User,
 } from "@jobpilot/shared-types";
 import type { ApplicationStore } from "../src/services/applications.js";
 import type { UserStore } from "../src/services/users.js";
@@ -121,11 +122,21 @@ export class MemoryApplicationStore implements ApplicationStore {
 }
 
 export class MemoryUserStore implements UserStore {
-  readonly users = new Map<string, { id: string; email: string; name: string | null }>();
+  readonly users = new Map<string, User>();
 
   async provision(input: { id: string; email: string; name: string | null }): Promise<void> {
     if (!this.users.has(input.id)) {
-      this.users.set(input.id, input);
+      this.users.set(input.id, {
+        id: input.id,
+        email: input.email,
+        name: input.name,
+        plan: "free",
+        createdAt: new Date().toISOString(),
+      });
     }
+  }
+
+  async getById(id: string): Promise<User | null> {
+    return this.users.get(id) ?? null;
   }
 }
