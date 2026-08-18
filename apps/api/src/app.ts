@@ -1,6 +1,7 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { createApplicationsRouter } from "./routes/applications.js";
+import { createMeRouter } from "./routes/me.js";
 import { createClerkWebhookRouter } from "./routes/webhooks/clerk.js";
 import type { ApplicationStore } from "./services/applications.js";
 import type { UserStore } from "./services/users.js";
@@ -33,6 +34,7 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
   app.use("/api/*", options.rateLimit);
 
   app.route("/api/applications", createApplicationsRouter(options.applications));
+  app.route("/api/me", createMeRouter(options.users));
 
   return app;
 }

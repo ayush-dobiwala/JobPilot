@@ -116,7 +116,7 @@ bun run --filter @jobpilot/api db:migrate
 bun run --filter @jobpilot/api dev
 ```
 
-The API listens on `http://localhost:3001`.
+The API listens on `http://localhost:3001`. The web app is `http://localhost:5173`.
 
 Worker Python deps (when the worker is implemented):
 

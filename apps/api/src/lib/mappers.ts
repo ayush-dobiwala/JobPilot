@@ -1,5 +1,15 @@
-import type { Application, ApplicationEvent } from "@jobpilot/shared-types";
-import type { ApplicationEventRow, ApplicationRow } from "../db/schema.js";
+import type { Application, ApplicationEvent, User } from "@jobpilot/shared-types";
+import type { ApplicationEventRow, ApplicationRow, UserRow } from "../db/schema.js";
+
+export function toUser(row: UserRow): User {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    plan: row.plan,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
 export function toApplication(row: ApplicationRow): Application {
   return {

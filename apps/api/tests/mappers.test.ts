@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { toApplication } from "../src/lib/mappers.js";
-import type { ApplicationRow } from "../src/db/schema.js";
+import { toApplication, toUser } from "../src/lib/mappers.js";
+import type { ApplicationRow, UserRow } from "../src/db/schema.js";
 
 describe("toApplication", () => {
   it("serializes timestamps to ISO strings", () => {
@@ -25,6 +25,25 @@ describe("toApplication", () => {
       company: "Acme",
       createdAt: "2026-01-15T12:00:00.000Z",
       appliedAt: null,
+    });
+  });
+});
+
+describe("toUser", () => {
+  it("maps a user row", () => {
+    const row: UserRow = {
+      id: "user_1",
+      email: "ada@example.com",
+      name: "Ada",
+      plan: "free",
+      createdAt: new Date("2026-01-15T12:00:00.000Z"),
+    };
+    expect(toUser(row)).toEqual({
+      id: "user_1",
+      email: "ada@example.com",
+      name: "Ada",
+      plan: "free",
+      createdAt: "2026-01-15T12:00:00.000Z",
     });
   });
 });

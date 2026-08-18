@@ -23,4 +23,4 @@ All routes except `/health` and `/api/webhooks/*` require `Authorization: Bearer
 | DELETE | `/api/applications/:id` | |
 | GET | `/api/applications/:id/events` | |
 
-`user.created` Clerk webhooks insert into `users` (`POST /api/webhooks/clerk`).
+`GET /api/me` returns the provisioned `users` row for the current Clerk JWT (404 until the webhook runs).
