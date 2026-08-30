@@ -1,9 +1,8 @@
 {
   "extends": "@jobpilot/config/typescript/react",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["vite/client"]
   },
