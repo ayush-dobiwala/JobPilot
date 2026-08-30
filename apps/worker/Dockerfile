@@ -5,6 +5,15 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# Chromium + driver deps for headless Selenium autofill/screenshots
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CHROME_BIN=/usr/bin/chromium \
+    WDM_LOCAL=1
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

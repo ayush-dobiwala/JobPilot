@@ -1,17 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { MiddlewareHandler } from "hono";
-import { createApp } from "../src/app.js";
-import type { AppEnv } from "../src/types.js";
-import { MemoryApplicationStore, MemoryUserStore } from "./memoryStores.js";
-
-const passthroughAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
-  c.set("clerkUserId", "user_test");
-  await next();
-};
-
-const passthroughRateLimit: MiddlewareHandler<AppEnv> = async (_c, next) => {
-  await next();
-};
+import { MemoryUserStore } from "./memoryStores.js";
+import { createTestApp } from "./testHelpers.js";
 
 const originalSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
 
@@ -27,13 +16,7 @@ describe("clerk webhook", () => {
   it("provisions a user on user.created", async () => {
     process.env.CLERK_WEBHOOK_SIGNING_SECRET = "whsec_test";
     const users = new MemoryUserStore();
-    const app = createApp({
-      applications: new MemoryApplicationStore(),
-      users,
-      requireAuth: passthroughAuth,
-      rateLimit: passthroughRateLimit,
-      verifyClerkWebhook: (payload) => JSON.parse(payload) as unknown,
-    });
+    const app = createTestApp({ users });
 
     const response = await app.request("/api/webhooks/clerk", {
       method: "POST",
@@ -59,11 +42,7 @@ describe("clerk webhook", () => {
 
   it("returns 503 when the signing secret is missing", async () => {
     delete process.env.CLERK_WEBHOOK_SIGNING_SECRET;
-    const app = createApp({
-      applications: new MemoryApplicationStore(),
-      users: new MemoryUserStore(),
-      requireAuth: passthroughAuth,
-      rateLimit: passthroughRateLimit,
+    const app = createTestApp({
       verifyClerkWebhook: () => {
         throw new Error("should not run");
       },

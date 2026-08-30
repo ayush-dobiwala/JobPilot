@@ -1,17 +1,17 @@
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export function DashboardPage() {
   const { user, status } = useCurrentUser();
+  const { summary, loading: analyticsLoading } = useAnalytics();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Your search command center. Kanban and analytics land next.
-        </p>
+        <p className="text-sm text-muted-foreground">Your search command center.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -21,16 +21,24 @@ export function DashboardPage() {
             <CardDescription>Applications logged</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="font-display text-3xl">0</p>
+            {analyticsLoading || !summary ? (
+              <Skeleton className="h-9 w-16" />
+            ) : (
+              <p className="font-display text-3xl">{summary.applicationsThisWeek}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Response rate</CardTitle>
-            <CardDescription>Interview / applied</CardDescription>
+            <CardDescription>Interview / applied pipeline</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="font-display text-3xl">—</p>
+            {analyticsLoading || !summary ? (
+              <Skeleton className="h-9 w-16" />
+            ) : (
+              <p className="font-display text-3xl">{summary.responseRate}%</p>
+            )}
           </CardContent>
         </Card>
         <Card>

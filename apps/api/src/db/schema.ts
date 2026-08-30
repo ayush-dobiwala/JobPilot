@@ -191,6 +191,35 @@ export const subscriptions = pgTable("subscriptions", {
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
 });
 
+export const matchScoreRuns = pgTable(
+  "match_score_runs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    resumeId: text("resume_id").references(() => resumes.id, { onDelete: "set null" }),
+    jobDescription: text("job_description").notNull(),
+    score: integer("score").notNull(),
+    missingKeywords: jsonb("missing_keywords")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    suggestions: jsonb("suggestions")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("match_score_runs_user_id_created_at_idx").on(table.userId, table.createdAt)],
+);
+
 export type UserRow = typeof users.$inferSelect;
 export type ApplicationRow = typeof applications.$inferSelect;
 export type ApplicationEventRow = typeof applicationEvents.$inferSelect;
+export type ResumeRow = typeof resumes.$inferSelect;
+export type MatchScoreRunRow = typeof matchScoreRuns.$inferSelect;
+export type AutomationRunRow = typeof automationRuns.$inferSelect;
+export type ProfileRow = typeof profiles.$inferSelect;

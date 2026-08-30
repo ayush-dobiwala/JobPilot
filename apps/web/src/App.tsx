@@ -8,6 +8,7 @@ import { AutomationPage } from "@/app/automation/AutomationPage";
 import { BillingPage } from "@/app/billing/BillingPage";
 import { DashboardPage } from "@/app/dashboard/DashboardPage";
 import { LandingPage } from "@/app/landing/LandingPage";
+import { MatchScorerPage } from "@/app/match-scorer/MatchScorerPage";
 import { SettingsPage } from "@/app/settings/SettingsPage";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
@@ -51,6 +52,7 @@ export function App() {
             <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
+              <Route path="/match-scorer" element={<MatchScorerPage />} />
               <Route path="/automation" element={<AutomationPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/settings" element={<SettingsPage />} />

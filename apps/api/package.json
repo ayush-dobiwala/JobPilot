@@ -19,10 +19,13 @@
   "dependencies": {
     "@clerk/backend": "^2.18.0",
     "@jobpilot/shared-types": "workspace:*",
+    "bullmq": "^6.3.2",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.9.4",
+    "ioredis": "^6.0.0",
     "postgres": "^3.4.7",
+    "stripe": "^22.6.0",
     "svix": "^1.76.1"
   },
   "devDependencies": {
