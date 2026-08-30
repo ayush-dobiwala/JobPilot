@@ -1,5 +1,4 @@
-# Deploy jobs are filled in at build step 11 (Vercel frontend, Railway/Fly API + worker).
-# This file exists so the workflow path matches the monorepo spec from day one.
+# Deploy: see docs/DEPLOY.md (Cloudflare Pages + Render free tier).
 name: Deploy
 
 on:
@@ -9,9 +8,9 @@ on:
 
 jobs:
   placeholder:
-    name: Deploy (not configured yet)
+    name: Deploy (manual via Render / Cloudflare)
     runs-on: ubuntu-latest
     if: false
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Deploy pipeline lands with production hosting."
+      - run: echo "Use docs/DEPLOY.md — hosts deploy from GitHub on push to main."
