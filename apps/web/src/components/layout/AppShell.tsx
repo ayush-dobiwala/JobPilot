@@ -1,5 +1,13 @@
 import { UserButton } from "@clerk/clerk-react";
-import { BarChart3, Bot, Briefcase, CreditCard, LayoutDashboard, Settings, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  Bot,
+  Briefcase,
+  CreditCard,
+  LayoutDashboard,
+  Settings,
+  Sparkles,
+} from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Separator } from "@/components/ui/separator";

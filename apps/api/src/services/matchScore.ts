@@ -26,11 +26,7 @@ function startOfUtcMonth(): Date {
 
 export interface MatchScoreStore {
   getUsage(userId: string): Promise<{ used: number; limit: number | null; plan: "free" | "pro" }>;
-  score(
-    userId: string,
-    resumeId: string,
-    jobDescription: string,
-  ): Promise<MatchScoreResponse>;
+  score(userId: string, resumeId: string, jobDescription: string): Promise<MatchScoreResponse>;
 }
 
 export function createMatchScoreService(
@@ -40,7 +36,11 @@ export function createMatchScoreService(
 ): MatchScoreStore {
   return {
     async getUsage(userId) {
-      const [user] = await db.select({ plan: users.plan }).from(users).where(eq(users.id, userId)).limit(1);
+      const [user] = await db
+        .select({ plan: users.plan })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
       const plan = user?.plan ?? "free";
       const monthStart = startOfUtcMonth();
       const [usageRow] = await db

@@ -220,7 +220,12 @@ function parseModelJson(text: string): MatchScoreResponse | null {
 
 function qualificationsSlice(jobDescription: string): string {
   const lower = jobDescription.toLowerCase();
-  const markers = ["basic qualifications", "preferred qualifications", "requirements", "key job responsibilities"];
+  const markers = [
+    "basic qualifications",
+    "preferred qualifications",
+    "requirements",
+    "key job responsibilities",
+  ];
   let start = -1;
   for (const marker of markers) {
     const idx = lower.indexOf(marker);
@@ -231,7 +236,13 @@ function qualificationsSlice(jobDescription: string): string {
   if (start === -1) {
     return jobDescription;
   }
-  const endMarkers = ["about the team", "a day in the life", "amazon is an equal", "job details", "base salary"];
+  const endMarkers = [
+    "about the team",
+    "a day in the life",
+    "amazon is an equal",
+    "job details",
+    "base salary",
+  ];
   let end = jobDescription.length;
   for (const marker of endMarkers) {
     const idx = lower.indexOf(marker, start + 10);
@@ -264,7 +275,11 @@ export function extractMockKeywords(jobDescription: string): string[] {
     if (!found.some((f) => bullet.includes(f))) {
       // Keep concise skill-ish fragments, not whole paragraphs.
       const clipped = bullet.replace(/\.$/, "");
-      if (/experience|programming|design|build|develop|degree|cycle|debugging|architecture/i.test(clipped)) {
+      if (
+        /experience|programming|design|build|develop|degree|cycle|debugging|architecture/i.test(
+          clipped,
+        )
+      ) {
         found.push(clipped);
       }
     }
@@ -411,7 +426,9 @@ export function createMockMatchScorer(result?: MatchScoreResponse): MatchScorer 
       }
       const resumeLower = resumeText.toLowerCase();
       const keywords = extractMockKeywords(jobDescription);
-      const missingKeywords = keywords.filter((keyword) => !resumeLower.includes(keyword.toLowerCase()));
+      const missingKeywords = keywords.filter(
+        (keyword) => !resumeLower.includes(keyword.toLowerCase()),
+      );
       const matched = keywords.length - missingKeywords.length;
       const score =
         keywords.length === 0

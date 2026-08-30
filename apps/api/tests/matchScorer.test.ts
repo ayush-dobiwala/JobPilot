@@ -44,9 +44,11 @@ Key job responsibilities
 `;
     const keywords = extractMockKeywords(jd);
     expect(keywords.join(" ")).not.toMatch(/10441359|want|millions|canada|amazon/i);
-    expect(keywords.some((k) => /distributed|design patterns|on-call|debugging|life cycle|computer science/i.test(k))).toBe(
-      true,
-    );
+    expect(
+      keywords.some((k) =>
+        /distributed|design patterns|on-call|debugging|life cycle|computer science/i.test(k),
+      ),
+    ).toBe(true);
   });
 });
 

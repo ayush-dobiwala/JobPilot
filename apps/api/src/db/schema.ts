@@ -203,8 +203,14 @@ export const matchScoreRuns = pgTable(
     resumeId: text("resume_id").references(() => resumes.id, { onDelete: "set null" }),
     jobDescription: text("job_description").notNull(),
     score: integer("score").notNull(),
-    missingKeywords: jsonb("missing_keywords").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-    suggestions: jsonb("suggestions").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    missingKeywords: jsonb("missing_keywords")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    suggestions: jsonb("suggestions")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("match_score_runs_user_id_created_at_idx").on(table.userId, table.createdAt)],

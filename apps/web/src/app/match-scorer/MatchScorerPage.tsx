@@ -8,7 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useMatchScorer } from "@/hooks/useMatchScorer";
 
-function resumeLabel(resume: { id: string; parsedText: string | null; isPrimary: boolean }, index: number) {
+function resumeLabel(
+  resume: { id: string; parsedText: string | null; isPrimary: boolean },
+  index: number,
+) {
   const preview = resume.parsedText?.slice(0, 48).replace(/\s+/g, " ") ?? "Resume";
   return resume.isPrimary ? `${preview}… (primary)` : `${preview}… (#${index + 1})`;
 }
@@ -56,9 +59,8 @@ export function MatchScorerPage() {
             Match Scorer
           </h1>
           <p className="text-sm text-muted-foreground">
-            Paste a job description and compare it against your resume.
-            Without an Anthropic key the API uses a local heuristic mock — good for
-            wiring tests, not interview-grade coaching.
+            Paste a job description and compare it against your resume. Without an Anthropic key the
+            API uses a local heuristic mock — good for wiring tests, not interview-grade coaching.
           </p>
         </div>
         {usage ? (
@@ -100,7 +102,9 @@ export function MatchScorerPage() {
             <div className="space-y-2">
               <Label htmlFor="resume-select">Saved resume</Label>
               {resumes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No saved resume yet — paste one above.</p>
+                <p className="text-sm text-muted-foreground">
+                  No saved resume yet — paste one above.
+                </p>
               ) : (
                 <select
                   id="resume-select"
@@ -163,7 +167,9 @@ export function MatchScorerPage() {
               <>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-primary/30 bg-primary/10">
-                    <span className="font-display text-3xl font-bold text-primary">{result.score}%</span>
+                    <span className="font-display text-3xl font-bold text-primary">
+                      {result.score}%
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground">Overall match score</p>
                 </div>
@@ -172,7 +178,9 @@ export function MatchScorerPage() {
                   <p className="text-sm font-medium">Missing keywords</p>
                   <div className="flex flex-wrap gap-2">
                     {result.missingKeywords.length === 0 ? (
-                      <span className="text-sm text-muted-foreground">None flagged — strong overlap.</span>
+                      <span className="text-sm text-muted-foreground">
+                        None flagged — strong overlap.
+                      </span>
                     ) : (
                       result.missingKeywords.map((keyword) => (
                         <Badge key={keyword} className="border-border bg-secondary text-foreground">
@@ -187,7 +195,10 @@ export function MatchScorerPage() {
                   <p className="text-sm font-medium">Suggested edits</p>
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     {result.suggestions.map((suggestion) => (
-                      <li key={suggestion} className="rounded-md bg-secondary/60 px-3 py-2 text-foreground">
+                      <li
+                        key={suggestion}
+                        className="rounded-md bg-secondary/60 px-3 py-2 text-foreground"
+                      >
                         {suggestion}
                       </li>
                     ))}

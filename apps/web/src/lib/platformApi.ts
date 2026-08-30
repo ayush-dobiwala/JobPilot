@@ -110,10 +110,7 @@ export async function fetchProfile(token: string): Promise<Profile | null> {
   return (await response.json()) as Profile | null;
 }
 
-export async function updateProfile(
-  token: string,
-  body: UpdateProfileRequest,
-): Promise<Profile> {
+export async function updateProfile(token: string, body: UpdateProfileRequest): Promise<Profile> {
   const response = await apiFetch("/api/profile", token, {
     method: "PUT",
     headers: { "content-type": "application/json" },

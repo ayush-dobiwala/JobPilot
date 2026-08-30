@@ -48,7 +48,11 @@ export class MemoryMatchScoreStore implements MatchScoreStore {
     return { used: this.used, limit: this.limit, plan: this.plan };
   }
 
-  async score(_userId: string, _resumeId: string, _jobDescription: string): Promise<MatchScoreResponse> {
+  async score(
+    _userId: string,
+    _resumeId: string,
+    _jobDescription: string,
+  ): Promise<MatchScoreResponse> {
     this.used += 1;
     return this.result;
   }

@@ -55,8 +55,7 @@ function resolveMatchScorer(): { scorer: MatchScorer; label: string } {
   }
   if (openaiKey) {
     const isOpenRouter = openaiKey.startsWith("sk-or-");
-    const model =
-      process.env.OPENAI_MODEL ?? (isOpenRouter ? "openai/gpt-4o-mini" : "gpt-4o-mini");
+    const model = process.env.OPENAI_MODEL ?? (isOpenRouter ? "openai/gpt-4o-mini" : "gpt-4o-mini");
     return {
       scorer: createOpenAIMatchScorer(openaiKey, {
         ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}),

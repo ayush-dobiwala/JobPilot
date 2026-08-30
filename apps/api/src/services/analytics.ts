@@ -33,12 +33,16 @@ export function createAnalyticsService(db: Database): AnalyticsStore {
         .where(eq(applications.userId, userId))
         .groupBy(applications.status);
 
-      const byStatus = Object.fromEntries(statusRows.map((row) => [row.status, Number(row.value)])) as Record<
-        string,
-        number
-      >;
-      const applied = (byStatus.applied ?? 0) + (byStatus.interview ?? 0) + (byStatus.offer ?? 0) + (byStatus.rejected ?? 0);
-      const responses = (byStatus.interview ?? 0) + (byStatus.offer ?? 0) + (byStatus.rejected ?? 0);
+      const byStatus = Object.fromEntries(
+        statusRows.map((row) => [row.status, Number(row.value)]),
+      ) as Record<string, number>;
+      const applied =
+        (byStatus.applied ?? 0) +
+        (byStatus.interview ?? 0) +
+        (byStatus.offer ?? 0) +
+        (byStatus.rejected ?? 0);
+      const responses =
+        (byStatus.interview ?? 0) + (byStatus.offer ?? 0) + (byStatus.rejected ?? 0);
       const responseRate = applied === 0 ? 0 : Math.round((responses / applied) * 1000) / 10;
 
       const [interviewRow] = await db
@@ -55,7 +59,9 @@ export function createAnalyticsService(db: Database): AnalyticsStore {
 
       const [avgRow] = await db
         .select({
-          avgDays: sql<number | null>`avg(extract(epoch from (${applications.appliedAt} - ${applications.createdAt})) / 86400.0)`,
+          avgDays: sql<
+            number | null
+          >`avg(extract(epoch from (${applications.appliedAt} - ${applications.createdAt})) / 86400.0)`,
         })
         .from(applications)
         .where(
@@ -87,9 +93,9 @@ export function createAnalyticsService(db: Database): AnalyticsStore {
         .where(eq(applications.userId, userId))
         .groupBy(applications.status);
 
-      const byStatus = Object.fromEntries(rows.map((row) => [row.status, Number(row.value)])) as Partial<
-        Record<keyof FunnelCounts, number>
-      >;
+      const byStatus = Object.fromEntries(
+        rows.map((row) => [row.status, Number(row.value)]),
+      ) as Partial<Record<keyof FunnelCounts, number>>;
 
       return {
         wishlist: byStatus.wishlist ?? 0,

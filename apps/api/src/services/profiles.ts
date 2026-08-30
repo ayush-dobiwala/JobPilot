@@ -17,7 +17,11 @@ export function createProfilesService(db: Database): ProfileStore {
     },
 
     async upsert(userId, input) {
-      const [existing] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
+      const [existing] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.userId, userId))
+        .limit(1);
       if (!existing) {
         const [created] = await db
           .insert(profiles)

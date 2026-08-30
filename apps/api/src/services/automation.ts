@@ -263,9 +263,12 @@ export async function processAutomationJob(
     }
 
     const [user] = await db.select().from(users).where(eq(users.id, job.userId)).limit(1);
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, job.userId)).limit(1);
-    const formUrl =
-      job.formUrl ?? `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`;
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.userId, job.userId))
+      .limit(1);
+    const formUrl = job.formUrl ?? `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`;
 
     const response = await fetch(`${workerBaseUrl.replace(/\/$/, "")}/autofill`, {
       method: "POST",

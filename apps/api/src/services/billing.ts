@@ -142,8 +142,7 @@ export function createBillingService(options: {
           return;
         }
 
-        const active =
-          subscription.status === "active" || subscription.status === "trialing";
+        const active = subscription.status === "active" || subscription.status === "trialing";
         const plan = event.type === "customer.subscription.deleted" || !active ? "free" : "pro";
         const status =
           event.type === "customer.subscription.deleted"

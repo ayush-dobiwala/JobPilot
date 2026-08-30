@@ -52,7 +52,10 @@ class MemoryAutomationStore implements AutomationStore {
     return { runId };
   }
 
-  async enqueueAutofill(userId: string, input: { applicationId: string }): Promise<QueueJobResponse> {
+  async enqueueAutofill(
+    userId: string,
+    input: { applicationId: string },
+  ): Promise<QueueJobResponse> {
     const runId = crypto.randomUUID();
     this.runs.set(runId, {
       id: runId,

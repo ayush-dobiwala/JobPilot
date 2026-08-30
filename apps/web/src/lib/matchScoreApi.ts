@@ -22,9 +22,7 @@ async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchMatchScoreUsage(
-  token: string | null,
-): Promise<MatchScoreUsageResponse> {
+export async function fetchMatchScoreUsage(token: string | null): Promise<MatchScoreUsageResponse> {
   const response = await apiFetch("/api/match-score/usage", token);
   return parseJson<MatchScoreUsageResponse>(response);
 }
