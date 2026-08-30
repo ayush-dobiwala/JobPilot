@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from "./enums.js";
+import type { ApplicationStatus, Plan } from "./enums.js";
 import type { Application, ApplicationEvent, AutomationRun } from "./models.js";
 
 export interface PaginatedResponse<T> {
@@ -83,6 +83,29 @@ export interface CheckoutSessionResponse {
 
 export interface PortalSessionResponse {
   url: string;
+}
+
+export interface UpdateProfileRequest {
+  phone?: string | null;
+  location?: string | null;
+  linkedinUrl?: string | null;
+  portfolioUrl?: string | null;
+  workAuthStatus?: string | null;
+}
+
+export interface ListAutomationRunsResponse {
+  data: AutomationRun[];
+}
+
+export interface CreateResumeRequest {
+  parsedText: string;
+  isPrimary?: boolean;
+}
+
+export interface MatchScoreUsageResponse {
+  used: number;
+  limit: number | null;
+  plan: Plan;
 }
 
 export type { Application, ApplicationEvent, AutomationRun };

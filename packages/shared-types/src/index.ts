@@ -38,16 +38,20 @@ export type {
   AutofillJobRequest,
   CheckoutSessionResponse,
   CreateApplicationRequest,
+  CreateResumeRequest,
   FunnelCounts,
   ListApplicationsQuery,
   ListApplicationsResponse,
+  ListAutomationRunsResponse,
   MatchScoreRequest,
   MatchScoreResponse,
+  MatchScoreUsageResponse,
   PaginatedResponse,
   PortalSessionResponse,
   QueueJobResponse,
   ScrapeJobRequest,
   UpdateApplicationRequest,
+  UpdateProfileRequest,
 } from "./api.js";
 
 export {

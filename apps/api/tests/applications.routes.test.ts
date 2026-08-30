@@ -1,26 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { MiddlewareHandler } from "hono";
-import { createApp } from "../src/app.js";
-import type { AppEnv } from "../src/types.js";
 import { MemoryApplicationStore, MemoryUserStore } from "./memoryStores.js";
-
-const passthroughAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
-  c.set("clerkUserId", c.req.header("x-user-id") ?? "user_test");
-  await next();
-};
-
-const passthroughRateLimit: MiddlewareHandler<AppEnv> = async (_c, next) => {
-  await next();
-};
+import { createTestApp } from "./testHelpers.js";
 
 function testApp(applications = new MemoryApplicationStore(), users = new MemoryUserStore()) {
-  const app = createApp({
-    applications,
-    users,
-    requireAuth: passthroughAuth,
-    rateLimit: passthroughRateLimit,
-    verifyClerkWebhook: (payload) => JSON.parse(payload) as unknown,
-  });
+  const app = createTestApp({ applications, users });
   return { app, applications, users };
 }
 

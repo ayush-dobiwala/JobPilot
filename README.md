@@ -2,7 +2,7 @@
 
 Job application autopilot and tracker for job seekers who are tired of spreadsheets and re-typing the same profile into every ATS. Track applications on a Kanban board, score resume–JD fit with AI, and auto-fill Greenhouse/Lever-style forms with a **human-in-the-loop** confirmation step — the worker never submits without you.
 
-> Live demo and GIF will land with deploy (build step 11). This repo is being built in the order listed in the project spec.
+> Live demo and GIF will land with deploy (build step 11). Local setup: see [`docs/KEYS_AND_SETUP.md`](./docs/KEYS_AND_SETUP.md).
 
 ---
 
@@ -118,14 +118,17 @@ bun run --filter @jobpilot/api dev
 
 The API listens on `http://localhost:3001`. The web app is `http://localhost:5173`.
 
-Worker Python deps (when the worker is implemented):
+Worker:
 
 ```bash
 cd apps/worker
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 ```
+
+Demo ATS form: `http://localhost:8000/fixtures/demo-apply.html`
 
 Useful Turbo scripts from the repo root:
 
@@ -142,7 +145,17 @@ Useful Turbo scripts from the repo root:
 
 ## Environment variables
 
-See [`.env.example`](./.env.example). Secrets stay in `.env` (gitignored). The API reads `DATABASE_URL` as the Supabase Session Pooler URI (`prepare: false` is required for the pooler). `SUPABASE_SERVICE_ROLE_KEY` is server-only, used to mint Storage signed URLs — it is never sent to the browser.
+See [`.env.example`](./.env.example) and the click-by-click guide in [`docs/KEYS_AND_SETUP.md`](./docs/KEYS_AND_SETUP.md).
+
+Secrets stay in `.env` (gitignored). The API reads `DATABASE_URL` as the Supabase Session Pooler URI (`prepare: false` is required for the pooler). `SUPABASE_SERVICE_ROLE_KEY` is server-only.
+
+With `MOCK_MATCH_SCORER=true` (or no `ANTHROPIC_API_KEY`), match scoring runs locally with a deterministic heuristic — no Anthropic bill.
+
+---
+
+## Human-in-the-loop automation
+
+The Python worker fills ATS fields and captures a screenshot, then **stops**. Final submit only happens after the user clicks **Confirm submit** in the Automation UI (API → worker `/confirm-submit`). That keeps automation ToS-safer and interview-defensible.
 
 ---
 

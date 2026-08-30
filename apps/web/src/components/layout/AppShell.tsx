@@ -1,5 +1,5 @@
 import { UserButton } from "@clerk/clerk-react";
-import { BarChart3, Bot, Briefcase, CreditCard, LayoutDashboard, Settings } from "lucide-react";
+import { BarChart3, Bot, Briefcase, CreditCard, LayoutDashboard, Settings, Sparkles } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Separator } from "@/components/ui/separator";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/applications", label: "Applications", icon: Briefcase },
+  { to: "/match-scorer", label: "Match Scorer", icon: Sparkles },
   { to: "/automation", label: "Automation", icon: Bot },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },

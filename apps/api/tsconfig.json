@@ -1,5 +1,5 @@
 {
-  "extends": "@jobpilot/config/typescript/node",
+  "extends": "../../packages/config/typescript/node.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
