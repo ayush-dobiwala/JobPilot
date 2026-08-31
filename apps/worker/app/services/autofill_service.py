@@ -28,22 +28,60 @@ def _capture_screenshot(driver: WebDriver) -> str:
     return base64.b64encode(png_bytes).decode("ascii")
 
 
+def _split_name(full_name: str) -> tuple[str, str]:
+    parts = [p for p in full_name.strip().split() if p]
+    if not parts:
+        return "", ""
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
 def _applicant_fields(applicant: Applicant) -> dict[str, str]:
+    first, last = _split_name(applicant.name)
     fields: dict[str, str] = {
         "name": applicant.name,
+        "first_name": first,
+        "last_name": last,
         "email": applicant.email,
     }
-    if applicant.phone:
-        fields["phone"] = applicant.phone
-    if applicant.linkedinUrl:
-        fields["linkedin"] = applicant.linkedinUrl
-    if applicant.portfolioUrl:
-        fields["portfolio"] = applicant.portfolioUrl
-    if applicant.workAuthStatus:
-        fields["work_auth"] = applicant.workAuthStatus
-    if applicant.coverLetter:
-        fields["cover_letter"] = applicant.coverLetter
+    optional = {
+        "phone": applicant.phone,
+        "location": applicant.location,
+        "linkedin": applicant.linkedinUrl,
+        "portfolio": applicant.portfolioUrl,
+        "github": applicant.githubUrl,
+        "website": applicant.websiteUrl or applicant.portfolioUrl,
+        "work_auth": applicant.workAuthStatus,
+        "cover_letter": applicant.coverLetter,
+        "current_title": applicant.currentTitle,
+        "years_experience": applicant.yearsExperience,
+        "start_date": applicant.startDate,
+        "relocation": applicant.relocation,
+        "additional_info": applicant.additionalInfo,
+        "resume_filename": applicant.resumeFileName,
+    }
+    for key, value in optional.items():
+        if value:
+            fields[key] = value
     return fields
+
+
+def _missing_fields(applicant: Applicant) -> list[str]:
+    missing: list[str] = []
+    if not applicant.name.strip():
+        missing.append("name")
+    if not applicant.email.strip():
+        missing.append("email")
+    if not (applicant.phone or "").strip():
+        missing.append("phone")
+    if not (applicant.linkedinUrl or "").strip():
+        missing.append("linkedin")
+    if not (applicant.workAuthStatus or "").strip():
+        missing.append("work_authorization")
+    if not (applicant.resumeFileName or applicant.resumeText):
+        missing.append("resume")
+    return missing
 
 
 def build_review_url(
@@ -76,6 +114,15 @@ def run_autofill(
     logs: list[LogEntry] = [
         LogEntry(step="start", message=f"Autofill started for {request.formUrl}")
     ]
+    missing = _missing_fields(request.applicant)
+    if missing:
+        logs.append(
+            LogEntry(
+                step="profile_gaps",
+                message="Missing in JobPilot profile: " + ", ".join(missing),
+            )
+        )
+
     driver = factory()
     screenshot: str | None = None
     filled_fields = _applicant_fields(request.applicant)
@@ -86,21 +133,25 @@ def run_autofill(
         role=request.roleTitle,
     )
     try:
-        driver.get(request.formUrl)
+        # Load the review URL so the form already shows query-param fills,
+        # then Selenium completes file upload + any remaining controls.
+        driver.get(review_url if _is_demo_form_url(request.formUrl) else request.formUrl)
         filler = resolve_filler(request.formUrl)
         logs.append(
             LogEntry(step="filler", message=f"Using {filler.__class__.__name__} for form.")
         )
         fill_logs = filler.fill(driver, request.applicant)
         logs.extend(fill_logs)
+        # Scroll to top for a clean interview screenshot of the filled form.
+        driver.execute_script("window.scrollTo(0, 0);")
         screenshot = _capture_screenshot(driver)
-        logs.append(LogEntry(step="screenshot", message="Captured autofill screenshot."))
+        logs.append(LogEntry(step="screenshot", message="Captured filled-form screenshot."))
         logs.append(
             LogEntry(
                 step="review_ready",
                 message=(
-                    "Open the review URL, verify fields, submit yourself, "
-                    "then mark Applied in JobPilot."
+                    "Open the review link in your browser to see the same filled form, "
+                    "edit if needed, submit yourself, then mark Applied in JobPilot."
                 ),
             )
         )
@@ -112,6 +163,7 @@ def run_autofill(
         screenshotBase64=screenshot,
         filledFields=filled_fields,
         reviewUrl=review_url,
+        missingFields=missing,
     )
 
 

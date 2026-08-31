@@ -3,137 +3,471 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Demo ATS Application</title>
+    <title>Meridian Careers — Application</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
     <style>
       :root {
-        color-scheme: light dark;
-        --bg: #0f1220;
-        --card: #171b2e;
-        --text: #eef2ff;
-        --muted: #a5b4fc;
-        --accent: #818cf8;
-        --ok: #34d399;
-        --border: #2e3350;
+        --ink: #0c1222;
+        --muted: #5b657a;
+        --line: #d8dee9;
+        --paper: #f7f5f1;
+        --card: #ffffff;
+        --brand: #0f3d3e;
+        --brand-soft: #e4f0f0;
+        --accent: #c45c26;
+        --ok: #1f7a4d;
+        --warn: #9a3412;
+        --warn-bg: #fff7ed;
+        --shadow: 0 18px 50px rgba(12, 18, 34, 0.08);
       }
-      @media (prefers-color-scheme: light) {
-        :root {
-          --bg: #f8fafc;
-          --card: #ffffff;
-          --text: #0f172a;
-          --muted: #64748b;
-          --accent: #4f46e5;
-          --ok: #059669;
-          --border: #e2e8f0;
-        }
+      * {
+        box-sizing: border-box;
       }
       body {
-        font-family: "Segoe UI", system-ui, sans-serif;
-        max-width: 640px;
-        margin: 2rem auto;
-        padding: 0 1rem 3rem;
-        background: var(--bg);
-        color: var(--text);
+        margin: 0;
+        min-height: 100vh;
+        font-family: "DM Sans", system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 500px at 10% -10%, #dce8e8 0%, transparent 55%),
+          radial-gradient(900px 400px at 100% 0%, #f3e7dc 0%, transparent 50%), var(--paper);
+      }
+      .shell {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 4rem;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .logo-mark {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.55rem;
+        background: linear-gradient(145deg, var(--brand), #1a6b6d);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+      }
+      .chip {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--brand);
+        background: var(--brand-soft);
+        border: 1px solid color-mix(in srgb, var(--brand) 18%, white);
+        border-radius: 999px;
+        padding: 0.35rem 0.7rem;
       }
       .banner {
-        background: color-mix(in srgb, var(--accent) 18%, transparent);
-        border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-        border-radius: 12px;
-        padding: 0.85rem 1rem;
+        background: linear-gradient(120deg, #102a43, #0f3d3e);
+        color: #eef6f6;
+        border-radius: 1rem;
+        padding: 1rem 1.15rem;
         margin-bottom: 1.25rem;
-        font-size: 0.9rem;
+        box-shadow: var(--shadow);
+      }
+      .banner strong {
+        display: block;
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+      }
+      .banner p {
+        margin: 0;
+        opacity: 0.88;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+      .hero {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 1.15rem;
+        padding: 1.5rem 1.5rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+      }
+      .eyebrow {
+        color: var(--accent);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 0 0.55rem;
+      }
+      h1 {
+        margin: 0;
+        font-family: "Instrument Serif", Georgia, serif;
+        font-weight: 400;
+        font-size: clamp(1.85rem, 4vw, 2.45rem);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .meta {
+        margin: 0.65rem 0 0;
         color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+        margin-top: 1.15rem;
+      }
+      .step {
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 0.55rem 0.65rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        background: #fbfaf8;
+      }
+      .step b {
+        display: block;
+        color: var(--ink);
+        font-size: 0.78rem;
+        margin-bottom: 0.1rem;
       }
       .card {
         background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.5rem;
+        border: 1px solid var(--line);
+        border-radius: 1.15rem;
+        padding: 1.35rem 1.5rem 1.6rem;
+        box-shadow: var(--shadow);
       }
-      h1 {
+      .section {
+        padding: 1.15rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .section:first-of-type {
+        border-top: 0;
+        padding-top: 0.25rem;
+      }
+      .section h2 {
         margin: 0 0 0.35rem;
-        font-size: 1.6rem;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
       }
-      .meta {
+      .section p.help {
+        margin: 0 0 1rem;
         color: var(--muted);
-        margin: 0 0 1.25rem;
-        font-size: 0.95rem;
+        font-size: 0.86rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.9rem 1rem;
+      }
+      .full {
+        grid-column: 1 / -1;
       }
       label {
         display: block;
-        margin-top: 1rem;
+        font-size: 0.8rem;
         font-weight: 600;
-        font-size: 0.9rem;
+        margin-bottom: 0.35rem;
+      }
+      label .req {
+        color: var(--accent);
       }
       input,
       select,
       textarea {
         width: 100%;
-        padding: 0.65rem 0.75rem;
-        margin-top: 0.35rem;
-        box-sizing: border-box;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        background: transparent;
-        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        padding: 0.72rem 0.8rem;
+        font: inherit;
+        color: var(--ink);
+        background: #fff;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
       }
-      button {
-        margin-top: 1.5rem;
-        padding: 0.8rem 1.4rem;
-        background: var(--accent);
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--brand) 55%, var(--line));
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      .file-box {
+        border: 1.5px dashed color-mix(in srgb, var(--brand) 35%, var(--line));
+        border-radius: 0.85rem;
+        padding: 1rem;
+        background: #f8fbfb;
+      }
+      .file-box input[type="file"] {
+        padding: 0.35rem 0;
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+      }
+      .file-name {
+        margin-top: 0.45rem;
+        font-size: 0.84rem;
+        color: var(--ok);
         font-weight: 600;
+        min-height: 1.2em;
+      }
+      .warnings {
+        display: none;
+        margin: 0 0 1rem;
+        padding: 0.85rem 1rem;
+        border-radius: 0.85rem;
+        background: var(--warn-bg);
+        border: 1px solid #fed7aa;
+        color: var(--warn);
+        font-size: 0.86rem;
+      }
+      .warnings ul {
+        margin: 0.4rem 0 0;
+        padding-left: 1.1rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 1.25rem;
+      }
+      button[type="submit"] {
+        appearance: none;
+        border: 0;
+        border-radius: 0.8rem;
+        padding: 0.85rem 1.35rem;
+        background: linear-gradient(145deg, var(--brand), #155556);
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(15, 61, 62, 0.25);
+      }
+      .note {
+        color: var(--muted);
+        font-size: 0.8rem;
       }
       #success {
         display: none;
-        color: var(--ok);
         margin-top: 1rem;
+        padding: 0.9rem 1rem;
+        border-radius: 0.85rem;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: var(--ok);
         font-weight: 600;
+      }
+      @media (max-width: 720px) {
+        .grid,
+        .steps {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="banner">
-      JobPilot review mode — fields may be pre-filled. Check everything carefully, edit if needed,
-      then submit yourself. JobPilot never submits without you.
+    <div class="shell">
+      <div class="topbar">
+        <div class="logo">
+          <div class="logo-mark" aria-hidden="true"></div>
+          <span>Meridian Careers</span>
+        </div>
+        <span class="chip">Secure application · JobPilot demo ATS</span>
+      </div>
+
+      <div class="banner">
+        <strong>Interview demo mode</strong>
+        <p>
+          This is a high-fidelity fake employer form. JobPilot can prepare every field and attach
+          your resume, then stop for your review. JobPilot never clicks Submit without you.
+        </p>
+      </div>
+
+      <div class="hero">
+        <p class="eyebrow">Application</p>
+        <h1 id="page-title">Apply — Demo Company</h1>
+        <p class="meta" id="page-role">Role title will appear here</p>
+        <div class="steps" aria-hidden="true">
+          <div class="step"><b>1. Profile</b>Contact &amp; links</div>
+          <div class="step"><b>2. Experience</b>Background</div>
+          <div class="step"><b>3. Documents</b>Resume upload</div>
+          <div class="step"><b>4. Review</b>You submit</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="missing-banner" class="warnings" role="status"></div>
+        <form id="application-form" action="#" method="post" enctype="multipart/form-data">
+          <section class="section">
+            <h2>Contact information</h2>
+            <p class="help">How the hiring team will reach you.</p>
+            <div class="grid">
+              <div>
+                <label for="first_name">First name <span class="req">*</span></label>
+                <input id="first_name" name="first_name" autocomplete="given-name" required />
+              </div>
+              <div>
+                <label for="last_name">Last name <span class="req">*</span></label>
+                <input id="last_name" name="last_name" autocomplete="family-name" required />
+              </div>
+              <div>
+                <label for="email">Email <span class="req">*</span></label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+              <div>
+                <label for="phone">Phone <span class="req">*</span></label>
+                <input id="phone" name="phone" type="tel" autocomplete="tel" required />
+              </div>
+              <div class="full">
+                <label for="location">Current location</label>
+                <input
+                  id="location"
+                  name="location"
+                  placeholder="City, Province / State"
+                  autocomplete="address-level2"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Professional links</h2>
+            <p class="help">Pulled from your JobPilot profile when available.</p>
+            <div class="grid">
+              <div>
+                <label for="linkedin">LinkedIn profile</label>
+                <input
+                  id="linkedin"
+                  name="linkedin"
+                  type="url"
+                  placeholder="https://linkedin.com/in/…"
+                />
+              </div>
+              <div>
+                <label for="portfolio">Portfolio / personal site</label>
+                <input
+                  id="portfolio"
+                  name="portfolio"
+                  type="url"
+                  placeholder="https://yoursite.dev"
+                />
+              </div>
+              <div>
+                <label for="github">GitHub</label>
+                <input id="github" name="github" type="url" placeholder="https://github.com/…" />
+              </div>
+              <div>
+                <label for="website">Other website</label>
+                <input id="website" name="website" type="url" placeholder="https://…" />
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Experience &amp; eligibility</h2>
+            <p class="help">Role fit signals hiring teams usually ask for.</p>
+            <div class="grid">
+              <div>
+                <label for="current_title">Current / recent title</label>
+                <input id="current_title" name="current_title" placeholder="Software Engineer" />
+              </div>
+              <div>
+                <label for="years_experience">Years of experience</label>
+                <select id="years_experience" name="years_experience">
+                  <option value="">Select…</option>
+                  <option value="0-1">0–1</option>
+                  <option value="1-3">1–3</option>
+                  <option value="3-5">3–5</option>
+                  <option value="5-8">5–8</option>
+                  <option value="8+">8+</option>
+                </select>
+              </div>
+              <div>
+                <label for="work_auth">Work authorization <span class="req">*</span></label>
+                <select id="work_auth" name="work_auth" required>
+                  <option value="">Select…</option>
+                  <option value="authorized">Authorized to work without sponsorship</option>
+                  <option value="sponsor">Will require visa sponsorship</option>
+                  <option value="student">Student / work permit</option>
+                </select>
+              </div>
+              <div>
+                <label for="start_date">Earliest start date</label>
+                <input id="start_date" name="start_date" type="date" />
+              </div>
+              <div class="full">
+                <label for="relocation">Open to relocation?</label>
+                <select id="relocation" name="relocation">
+                  <option value="">Select…</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                  <option value="hybrid">Hybrid / remote preferred</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Resume &amp; cover letter</h2>
+            <p class="help">Attach the resume JobPilot prepared for this application.</p>
+            <div class="grid">
+              <div class="full">
+                <div class="file-box">
+                  <label for="resume">Resume (PDF or DOCX) <span class="req">*</span></label>
+                  <input
+                    id="resume"
+                    name="resume"
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf"
+                  />
+                  <div id="resume_filename" class="file-name"></div>
+                </div>
+              </div>
+              <div class="full">
+                <label for="cover_letter">Cover letter</label>
+                <textarea
+                  id="cover_letter"
+                  name="cover_letter"
+                  rows="7"
+                  placeholder="A short note tailored to this role…"
+                ></textarea>
+              </div>
+              <div class="full">
+                <label for="additional_info">Anything else we should know?</label>
+                <textarea id="additional_info" name="additional_info" rows="3"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <div class="actions">
+            <button type="submit" id="submit-btn">Submit application</button>
+            <span class="note"
+              >In this demo, submit only records success locally — no email is sent.</span
+            >
+          </div>
+        </form>
+        <p id="success">
+          Application recorded. Return to JobPilot and mark this role as Applied on your board.
+        </p>
+      </div>
     </div>
-    <div class="card">
-      <h1 id="page-title">Apply — Demo Company</h1>
-      <p class="meta" id="page-role">Self-hosted demo application form</p>
-      <form id="application-form" action="#" method="post">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" name="name" required autocomplete="name" />
 
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required autocomplete="email" />
-
-        <label for="phone">Phone</label>
-        <input type="tel" id="phone" name="phone" autocomplete="tel" />
-
-        <label for="linkedin">LinkedIn URL</label>
-        <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/you" />
-
-        <label for="portfolio">Portfolio URL</label>
-        <input type="url" id="portfolio" name="portfolio" placeholder="https://yoursite.dev" />
-
-        <label for="work_auth">Work Authorization</label>
-        <select id="work_auth" name="work_auth">
-          <option value="">Select…</option>
-          <option value="authorized">Authorized to work without sponsorship</option>
-          <option value="sponsor">Require visa sponsorship</option>
-        </select>
-
-        <label for="cover_letter">Cover Letter</label>
-        <textarea id="cover_letter" name="cover_letter" rows="6"></textarea>
-
-        <button type="submit" id="submit-btn">Submit Application</button>
-      </form>
-      <p id="success">
-        Application submitted successfully. Return to JobPilot and mark it as Applied.
-      </p>
-    </div>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
@@ -145,26 +479,82 @@
         if (role) {
           document.getElementById("page-role").textContent = role;
         }
+
         var map = {
+          first_name: "first_name",
+          last_name: "last_name",
           name: "name",
           email: "email",
           phone: "phone",
+          location: "location",
           linkedin: "linkedin",
           portfolio: "portfolio",
-          cover_letter: "cover_letter",
+          github: "github",
+          website: "website",
+          current_title: "current_title",
+          years_experience: "years_experience",
           work_auth: "work_auth",
+          start_date: "start_date",
+          relocation: "relocation",
+          cover_letter: "cover_letter",
+          additional_info: "additional_info",
+          resume_filename: "resume_filename_param",
         };
+
+        if (params.has("name") && !params.has("first_name")) {
+          var parts = (params.get("name") || "").trim().split(/\s+/);
+          if (parts[0]) params.set("first_name", parts[0]);
+          if (parts.length > 1) params.set("last_name", parts.slice(1).join(" "));
+        }
+
         Object.keys(map).forEach(function (key) {
           if (!params.has(key)) return;
-          var el = document.getElementById(map[key]);
+          if (key === "resume_filename") {
+            var label = document.getElementById("resume_filename");
+            if (label) label.textContent = "Attached: " + params.get(key);
+            return;
+          }
+          var el = document.getElementById(map[key] === "resume_filename_param" ? key : map[key]);
+          if (!el) el = document.getElementById(key);
           if (!el) return;
           el.value = params.get(key);
+        });
+
+        var missing = [];
+        if (!(params.get("first_name") || params.get("name"))) missing.push("Full name");
+        if (!params.get("email")) missing.push("Email");
+        if (!params.get("phone")) missing.push("Phone");
+        if (!params.get("linkedin")) missing.push("LinkedIn (optional but recommended)");
+        if (!params.get("work_auth")) missing.push("Work authorization");
+        if (!params.get("resume_filename")) missing.push("Resume file");
+
+        var hard = missing.filter(function (m) {
+          return m.indexOf("optional") === -1;
+        });
+        if (hard.length) {
+          var banner = document.getElementById("missing-banner");
+          banner.style.display = "block";
+          banner.innerHTML =
+            "<strong>Profile gaps detected</strong><ul>" +
+            hard
+              .map(function (m) {
+                return "<li>" + m + " was empty in JobPilot — fill it before submitting.</li>";
+              })
+              .join("") +
+            "</ul>";
+        }
+
+        document.getElementById("resume").addEventListener("change", function (e) {
+          var file = e.target.files && e.target.files[0];
+          var label = document.getElementById("resume_filename");
+          label.textContent = file ? "Attached: " + file.name : "";
         });
       })();
 
       document.getElementById("application-form").addEventListener("submit", function (e) {
         e.preventDefault();
         document.getElementById("success").style.display = "block";
+        document.getElementById("success").scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     </script>
   </body>

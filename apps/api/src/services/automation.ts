@@ -12,6 +12,7 @@ import {
   applications,
   automationRuns,
   profiles,
+  resumes,
   scrapedJobs,
   users,
 } from "../db/schema.js";
@@ -604,16 +605,36 @@ export async function processAutomationJob(
     const [app] = job.applicationId
       ? await db.select().from(applications).where(eq(applications.id, job.applicationId)).limit(1)
       : [undefined];
+    const [primaryResume] = await db
+      .select()
+      .from(resumes)
+      .where(and(eq(resumes.userId, job.userId), eq(resumes.isPrimary, true)))
+      .limit(1);
+    const [anyResume] =
+      primaryResume != null
+        ? [primaryResume]
+        : await db.select().from(resumes).where(eq(resumes.userId, job.userId)).limit(1);
 
+    const demoForm = `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`;
+    const requested = job.formUrl?.trim() || "";
+    const useDemo =
+      requested === "" ||
+      requested.includes("demo-apply") ||
+      requested.includes("demo_apply") ||
+      requested.includes("/fixtures/");
     const formUrl = absoluteWorkerUrl(
       workerBaseUrl,
-      job.formUrl ?? app?.jobUrl ?? `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`,
+      useDemo ? demoForm : requested || app?.jobUrl || demoForm,
     );
 
     const coverLetter =
       app != null
-        ? `Hello ${app.company} hiring team,\n\nI'm excited to apply for the ${app.roleTitle} role. Thank you for considering my application.\n\nPrepared with JobPilot — I will review this form before submitting.`
+        ? `Hello ${app.company} hiring team,\n\nI'm excited to apply for the ${app.roleTitle} role. My background aligns with what you're looking for, and I'd welcome the chance to contribute.\n\nThank you for considering my application.\n\nPrepared with JobPilot — I will review this form before submitting.`
         : "Excited to apply. Prepared with JobPilot — I will review this form before submitting.";
+
+    const resume = anyResume;
+    const portfolio = profile?.portfolioUrl ?? null;
+    const github = portfolio && /github\.com/i.test(portfolio) ? portfolio : null;
 
     const response = await fetch(`${workerBaseUrl.replace(/\/$/, "")}/autofill`, {
       method: "POST",
@@ -623,13 +644,26 @@ export async function processAutomationJob(
         company: app?.company ?? null,
         roleTitle: app?.roleTitle ?? null,
         applicant: {
-          name: user?.name ?? "JobPilot Candidate",
-          email: user?.email ?? "candidate@example.com",
+          name: user?.name?.trim() || "",
+          email: user?.email?.trim() || "",
           phone: profile?.phone ?? null,
+          location: profile?.location ?? null,
           linkedinUrl: profile?.linkedinUrl ?? null,
-          portfolioUrl: profile?.portfolioUrl ?? null,
+          portfolioUrl: portfolio,
+          githubUrl: github,
+          websiteUrl: portfolio && !github ? portfolio : null,
           workAuthStatus: profile?.workAuthStatus ?? null,
           coverLetter,
+          currentTitle: app?.roleTitle ? `Applicant for ${app.roleTitle}` : null,
+          yearsExperience: "1-3",
+          relocation: "hybrid",
+          additionalInfo: resume
+            ? `Resume on file in JobPilot: ${resume.label}`
+            : "Please complete profile/resume in JobPilot for a fuller application.",
+          resumeFileName: resume
+            ? `${resume.label.replace(/[^\w.\- ]+/g, "").trim() || "resume"}.txt`
+            : null,
+          resumeText: resume?.parsedText?.slice(0, 4000) ?? null,
         },
       }),
     });
@@ -641,12 +675,23 @@ export async function processAutomationJob(
       screenshotBase64?: string | null;
       filledFields?: Record<string, string>;
       reviewUrl?: string | null;
+      missingFields?: string[];
     };
 
     const reviewUrl = body.reviewUrl ?? formUrl;
+    const missing = body.missingFields ?? [];
     const logs = [
       { step: "form_url", message: `Form URL: ${formUrl}`, timestamp: nowIso() },
       { step: "review_url", message: `Review URL: ${reviewUrl}`, timestamp: nowIso() },
+      ...(missing.length > 0
+        ? [
+            {
+              step: "profile_gaps",
+              message: `Complete these in Settings / Match Scorer for a fuller fill: ${missing.join(", ")}`,
+              timestamp: nowIso(),
+            },
+          ]
+        : []),
       ...(body.filledFields
         ? [
             {
@@ -660,7 +705,7 @@ export async function processAutomationJob(
       {
         step: "awaiting_confirm",
         message:
-          "Form prepared. Open the review link, submit yourself if everything looks right, then mark Applied here.",
+          "Form prepared. Open the review link to see the filled demo ATS, submit yourself if it looks right, then mark Applied here.",
         timestamp: nowIso(),
       },
     ];
@@ -673,6 +718,7 @@ export async function processAutomationJob(
         logs,
       })
       .where(and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "running")));
+    return;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown automation error";
     await db

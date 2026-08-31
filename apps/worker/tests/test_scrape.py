@@ -43,5 +43,8 @@ def test_scrape_job_posting_page_extracts_title_and_company() -> None:
 def test_demo_apply_fixture_route() -> None:
     response = client.get("/fixtures/demo-apply.html")
     assert response.status_code == 200
-    assert "Submit Application" in response.text
-    assert 'id="name"' in response.text
+    assert "Submit application" in response.text
+    assert 'id="name"' not in response.text or 'id="first_name"' in response.text
+    assert 'id="first_name"' in response.text
+    assert 'id="resume"' in response.text
+    assert "Meridian Careers" in response.text

@@ -11,10 +11,20 @@ class Applicant(BaseModel):
     name: str
     email: str
     phone: str | None = None
+    location: str | None = None
     linkedinUrl: str | None = None
     portfolioUrl: str | None = None
+    githubUrl: str | None = None
+    websiteUrl: str | None = None
     workAuthStatus: str | None = None
     coverLetter: str | None = None
+    currentTitle: str | None = None
+    yearsExperience: str | None = None
+    startDate: str | None = None
+    relocation: str | None = None
+    additionalInfo: str | None = None
+    resumeFileName: str | None = None
+    resumeText: str | None = None
 
 
 class AutofillRequest(BaseModel):
@@ -33,6 +43,7 @@ class AutofillResponse(BaseModel):
     screenshotBase64: str | None = None
     filledFields: dict[str, str] = {}
     reviewUrl: str | None = None
+    missingFields: list[str] = []
 
 
 class ConfirmSubmitRequest(BaseModel):

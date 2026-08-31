@@ -13,10 +13,17 @@ APPLICANT = {
     "name": "Jane Doe",
     "email": "jane@example.com",
     "phone": "555-0100",
+    "location": "Toronto, ON",
     "linkedinUrl": "https://linkedin.com/in/jane",
     "portfolioUrl": "https://jane.dev",
+    "githubUrl": "https://github.com/jane",
     "workAuthStatus": "authorized",
     "coverLetter": "Excited to join the team.",
+    "currentTitle": "Software Engineer",
+    "yearsExperience": "1-3",
+    "relocation": "hybrid",
+    "resumeFileName": "Jane_Doe_Resume.txt",
+    "resumeText": "Jane Doe\nSoftware Engineer\nBuilt APIs with TypeScript.",
 }
 
 
@@ -41,7 +48,9 @@ def test_autofill_endpoint_with_mocked_driver(demo_apply_file_url: str) -> None:
     assert body["reviewUrl"]
     assert body["filledFields"]["email"] == "jane@example.com"
     assert any(log["step"] == "stop" for log in body["logs"])
-    mock_driver.get.assert_called_once_with(demo_apply_file_url)
+    assert mock_driver.get.call_count == 1
+    opened = mock_driver.get.call_args.args[0]
+    assert opened.startswith(demo_apply_file_url)
     mock_driver.quit.assert_called_once()
 
 

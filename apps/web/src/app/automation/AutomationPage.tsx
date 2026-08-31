@@ -69,8 +69,15 @@ export function AutomationPage() {
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [savingWishlist, setSavingWishlist] = useState(false);
 
+  function demoFormUrl(company?: string, role?: string) {
+    const url = new URL(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
+    if (company) url.searchParams.set("company", company);
+    if (role) url.searchParams.set("role", role);
+    return url.toString();
+  }
+
   const [applicationId, setApplicationId] = useState("");
-  const [formUrl, setFormUrl] = useState(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
+  const [formUrl, setFormUrl] = useState(() => demoFormUrl());
 
   const selected = applications.find((app) => app.id === applicationId);
   const canAddWishlist = /^https?:\/\//i.test(jobUrl.trim());
@@ -79,16 +86,16 @@ export function AutomationPage() {
   useEffect(() => {
     if (!applicationId) return;
     const app = applications.find((row) => row.id === applicationId);
-    if (app?.jobUrl) {
-      setFormUrl(app.jobUrl);
+    if (app) {
+      setFormUrl(demoFormUrl(app.company, app.roleTitle));
     }
   }, [applicationId, applications]);
 
   function onSelectApplication(id: string) {
     setApplicationId(id);
     const app = applications.find((row) => row.id === id);
-    if (app?.jobUrl) {
-      setFormUrl(app.jobUrl);
+    if (app) {
+      setFormUrl(demoFormUrl(app.company, app.roleTitle));
     }
   }
 
@@ -100,7 +107,7 @@ export function AutomationPage() {
       const result = await saveJobFromUrl(jobUrl.trim());
       setJobUrl("");
       setApplicationId(result.applicationId);
-      setFormUrl(result.jobUrl);
+      setFormUrl(demoFormUrl(result.company, result.roleTitle));
       await refreshApps();
     } catch (err) {
       setWishlistError(err instanceof Error ? err.message : "Could not add to Wishlist");
@@ -206,7 +213,9 @@ export function AutomationPage() {
               Prepare application
             </CardTitle>
             <CardDescription>
-              Pick a Wishlist role, prepare the form with your profile, then open it to review.
+              Opens JobPilot’s professional demo ATS, fills your profile + resume, screenshots the
+              result, then lets you open the same filled form in your browser. Complete Settings and
+              upload a resume first for the best demo.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -227,13 +236,18 @@ export function AutomationPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="formUrl">Application form URL</Label>
+              <Label htmlFor="formUrl">Demo ATS form URL</Label>
               <Input id="formUrl" value={formUrl} onChange={(e) => setFormUrl(e.target.value)} />
               {selected ? (
                 <p className="text-xs text-muted-foreground">
-                  Using board card: {selected.company} · {selected.roleTitle}
+                  Demo form for {selected.company} · {selected.roleTitle}. Real employer sites are
+                  not auto-filled — this is the interview-ready walkthrough.
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Keep the JobPilot demo form URL for reliable autofill + screenshot.
+                </p>
+              )}
             </div>
             <Button
               disabled={busy || !applicationId || !formUrl.trim()}
@@ -360,20 +374,30 @@ export function AutomationPage() {
                 <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                   {run.logs
                     .filter((log) => !["filled_fields", "screenshot"].includes(log.step))
-                    .slice(-5)
+                    .slice(-8)
                     .map((log, index) => (
-                      <li key={`${run.id}-${index}`}>
+                      <li
+                        key={`${run.id}-${index}`}
+                        className={
+                          log.step === "missing" || log.step === "profile_gaps"
+                            ? "text-amber-700 dark:text-amber-300"
+                            : undefined
+                        }
+                      >
                         <span className="text-foreground">{log.step}:</span> {log.message}
                       </li>
                     ))}
                 </ul>
 
                 {screenshot?.screenshotUrl ? (
-                  <img
-                    src={screenshot.screenshotUrl}
-                    alt="Prepared application form"
-                    className="mt-3 max-h-72 rounded-lg border border-border"
-                  />
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-medium text-foreground">Filled form screenshot</p>
+                    <img
+                      src={screenshot.screenshotUrl}
+                      alt="Prepared application form"
+                      className="max-h-96 w-full rounded-lg border border-border object-contain bg-background"
+                    />
+                  </div>
                 ) : null}
               </div>
             );
