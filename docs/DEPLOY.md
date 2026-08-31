@@ -55,6 +55,8 @@ git pull origin main
 | Docker context | `.` (repo root) |
 | Instance | **Free** |
 
+If `bun install --frozen-lockfile` fails on Render, ensure `.dockerignore` does not exclude workspace `package.json` files and that `apps/web`, `apps/worker`, and `apps/mobile` package.json stubs are copied in the Dockerfile (already fixed on `main` after deploy guide).
+
 4. **Environment** → add (same values as local `.env`, production URLs where noted):
 
 ```text
@@ -122,7 +124,7 @@ CHROME_BIN=/usr/bin/chromium
 | Field | Value |
 |-------|--------|
 | Framework preset | Vite |
-| Build command | `bun install && bun run --filter @jobpilot/shared-types build && bun run --filter @jobpilot/web build` |
+| Build command | `bun install && bun run --filter @jobpilot/ui build && bun run --filter @jobpilot/shared-types build && bun run --filter @jobpilot/web build` |
 | Build output directory | `apps/web/dist` |
 | Root directory | `/` (monorepo root) |
 
@@ -130,7 +132,7 @@ If Cloudflare doesn’t have Bun by default, use:
 
 | Field | Value |
 |-------|--------|
-| Build command | `npm i -g bun && bun install && bun run --filter @jobpilot/shared-types build && bun run --filter @jobpilot/web build` |
+| Build command | `npm i -g bun && bun install && bun run --filter @jobpilot/ui build && bun run --filter @jobpilot/shared-types build && bun run --filter @jobpilot/web build` |
 | Output | `apps/web/dist` |
 
 4. **Environment variables** (Production):

@@ -1,14 +1,17 @@
-# FROM oven/bun:1.2-alpine AS deps
-# Note: pin major; Render/Fly rebuild on every push to main.
+# Monorepo Docker build for @jobpilot/api
+# Build from repo root:
+#   docker build -f apps/api/Dockerfile .
 
 FROM oven/bun:1.2-alpine AS build
 WORKDIR /app
 
-# Monorepo context: build from repo root with:
-#   docker build -f apps/api/Dockerfile .
 COPY package.json bun.lock turbo.json tsconfig.json ./
 COPY packages ./packages
 COPY apps/api ./apps/api
+# Workspace package.json stubs so bun install matches the lockfile
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
+COPY apps/mobile/package.json ./apps/mobile/package.json
 
 RUN bun install --frozen-lockfile
 RUN bun run --filter @jobpilot/shared-types build
