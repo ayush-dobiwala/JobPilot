@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   ApplicationNotFoundError,
+  AutomationCancelError,
   AutomationNotFoundError,
   type AutomationStore,
 } from "../services/automation.js";
@@ -20,6 +21,21 @@ export function createAutomationRouter(store: AutomationStore): Hono<AppEnv> {
       return c.json({ error: "Automation run not found" }, 404);
     }
     return c.json(run);
+  });
+
+  router.post("/runs/:id/cancel", async (c) => {
+    try {
+      const run = await store.cancelRun(c.get("clerkUserId"), c.req.param("id"));
+      return c.json(run);
+    } catch (error) {
+      if (error instanceof AutomationNotFoundError) {
+        return c.json({ error: error.message }, 404);
+      }
+      if (error instanceof AutomationCancelError) {
+        return c.json({ error: error.message }, 409);
+      }
+      throw error;
+    }
   });
 
   router.post("/scrape", async (c) => {

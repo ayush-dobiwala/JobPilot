@@ -16,7 +16,13 @@ export type ApplicationSource = (typeof APPLICATION_SOURCES)[number];
 export const AUTOMATION_RUN_TYPES = ["scrape", "autofill"] as const;
 export type AutomationRunType = (typeof AUTOMATION_RUN_TYPES)[number];
 
-export const AUTOMATION_RUN_STATUSES = ["queued", "running", "success", "failed"] as const;
+export const AUTOMATION_RUN_STATUSES = [
+  "queued",
+  "running",
+  "success",
+  "failed",
+  "canceled",
+] as const;
 export type AutomationRunStatus = (typeof AUTOMATION_RUN_STATUSES)[number];
 
 export const APPLICATION_EVENT_TYPES = ["status_change", "note", "interview_scheduled"] as const;

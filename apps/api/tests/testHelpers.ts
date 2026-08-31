@@ -4,7 +4,11 @@ import type { AppEnv } from "../src/types.js";
 import { MemoryMatchScoreStore, MemoryResumeStore } from "./memoryMatchStores.js";
 import { MemoryApplicationStore, MemoryUserStore } from "./memoryStores.js";
 import type { AnalyticsStore } from "../src/services/analytics.js";
-import type { AutomationStore } from "../src/services/automation.js";
+import {
+  AutomationCancelError,
+  AutomationNotFoundError,
+  type AutomationStore,
+} from "../src/services/automation.js";
 import type { BillingStore } from "../src/services/billing.js";
 import type { ProfileStore } from "../src/services/profiles.js";
 import type {
@@ -76,6 +80,31 @@ class MemoryAutomationStore implements AutomationStore {
       throw new Error("Automation run not found");
     }
     const updated = { ...run, status: "success" as const };
+    this.runs.set(runId, updated);
+    return updated;
+  }
+
+  async cancelRun(userId: string, runId: string) {
+    const run = await this.getRun(userId, runId);
+    if (!run) {
+      throw new AutomationNotFoundError();
+    }
+    if (run.status !== "queued" && run.status !== "running") {
+      throw new AutomationCancelError("Only queued or running jobs can be stopped");
+    }
+    const updated = {
+      ...run,
+      status: "canceled" as const,
+      finishedAt: new Date().toISOString(),
+      logs: [
+        ...run.logs,
+        {
+          step: "canceled",
+          message: "Stopped by you — this job will not continue.",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
     this.runs.set(runId, updated);
     return updated;
   }

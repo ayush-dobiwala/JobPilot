@@ -34,6 +34,7 @@ describe("isAutomationRunStatus", () => {
     expect(isAutomationRunStatus("running")).toBe(true);
     expect(isAutomationRunStatus("success")).toBe(true);
     expect(isAutomationRunStatus("failed")).toBe(true);
+    expect(isAutomationRunStatus("canceled")).toBe(true);
   });
 });
 

@@ -42,6 +42,7 @@ export const automationRunStatusEnum = pgEnum("automation_run_status", [
   "running",
   "success",
   "failed",
+  "canceled",
 ]);
 
 export const scrapeSourceEnum = pgEnum("scrape_source", ["linkedin", "indeed", "generic"]);

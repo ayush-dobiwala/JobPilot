@@ -32,12 +32,20 @@ export class ApplicationNotFoundError extends Error {
   }
 }
 
+export class AutomationCancelError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AutomationCancelError";
+  }
+}
+
 export interface AutomationStore {
   listRuns(userId: string): Promise<AutomationRun[]>;
   getRun(userId: string, runId: string): Promise<AutomationRun | null>;
   enqueueScrape(userId: string, input: ScrapeJobRequest): Promise<QueueJobResponse>;
   enqueueAutofill(userId: string, input: AutofillJobRequest): Promise<QueueJobResponse>;
   confirmSubmit(userId: string, runId: string): Promise<AutomationRun>;
+  cancelRun(userId: string, runId: string): Promise<AutomationRun>;
 }
 
 type WorkerLog = {
@@ -267,6 +275,40 @@ export function createAutomationService(
       }
       return toAutomationRun(updated);
     },
+
+    async cancelRun(userId, runId) {
+      const run = await this.getRun(userId, runId);
+      if (!run) {
+        throw new AutomationNotFoundError();
+      }
+      if (run.status !== "queued" && run.status !== "running") {
+        throw new AutomationCancelError("Only queued or running jobs can be stopped");
+      }
+
+      const logs = [
+        ...run.logs,
+        {
+          step: "canceled",
+          message: "Stopped by you — this job will not continue.",
+          timestamp: nowIso(),
+        },
+      ];
+
+      const [updated] = await db
+        .update(automationRuns)
+        .set({
+          status: "canceled",
+          finishedAt: new Date(),
+          logs,
+        })
+        .where(and(eq(automationRuns.id, runId), eq(automationRuns.userId, userId)))
+        .returning();
+
+      if (!updated) {
+        throw new AutomationNotFoundError();
+      }
+      return toAutomationRun(updated);
+    },
   };
 }
 
@@ -283,15 +325,37 @@ export async function processAutomationJob(
     formUrl?: string | null;
   },
 ): Promise<void> {
+  const [existing] = await db
+    .select({ status: automationRuns.status, logs: automationRuns.logs })
+    .from(automationRuns)
+    .where(eq(automationRuns.id, job.runId))
+    .limit(1);
+
+  if (!existing || existing.status === "canceled") {
+    return;
+  }
+
   const startedAt = new Date();
   await db
     .update(automationRuns)
     .set({
       status: "running",
       startedAt,
-      logs: [{ step: "running", message: "Worker started", timestamp: startedAt.toISOString() }],
+      logs: [
+        ...existing.logs,
+        { step: "running", message: "Worker started", timestamp: startedAt.toISOString() },
+      ],
     })
-    .where(eq(automationRuns.id, job.runId));
+    .where(and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "queued")));
+
+  const [claimed] = await db
+    .select({ status: automationRuns.status })
+    .from(automationRuns)
+    .where(eq(automationRuns.id, job.runId))
+    .limit(1);
+  if (!claimed || claimed.status !== "running") {
+    return;
+  }
 
   try {
     if (job.type === "scrape") {
@@ -360,7 +424,9 @@ export async function processAutomationJob(
             },
           ],
         })
-        .where(eq(automationRuns.id, job.runId));
+        .where(
+          and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "running")),
+        );
       return;
     }
 
@@ -447,7 +513,7 @@ export async function processAutomationJob(
         finishedAt: new Date(),
         logs,
       })
-      .where(eq(automationRuns.id, job.runId));
+      .where(and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "running")));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown automation error";
     await db
@@ -457,6 +523,6 @@ export async function processAutomationJob(
         finishedAt: new Date(),
         logs: [{ step: "failed", message, timestamp: nowIso() }],
       })
-      .where(eq(automationRuns.id, job.runId));
+      .where(and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "running")));
   }
 }

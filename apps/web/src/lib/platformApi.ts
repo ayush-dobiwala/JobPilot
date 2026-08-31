@@ -62,6 +62,23 @@ export async function confirmSubmit(token: string, runId: string): Promise<Autom
   return (await response.json()) as AutomationRun;
 }
 
+export async function cancelAutomationRun(token: string, runId: string): Promise<AutomationRun> {
+  const response = await apiFetch(`/api/automation/runs/${runId}/cancel`, token, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    let message = "Failed to stop job";
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+  return (await response.json()) as AutomationRun;
+}
+
 export async function fetchAnalyticsSummary(token: string): Promise<AnalyticsSummary> {
   const response = await apiFetch("/api/analytics/summary", token);
   if (!response.ok) {

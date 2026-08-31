@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, CheckCircle2, Search, Wand2 } from "lucide-react";
+import { BookmarkPlus, CheckCircle2, ExternalLink, Square, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,15 +42,26 @@ function filledFieldsFromRun(runLogs: { step: string; message: string }[]): Reco
   }
 }
 
+function isActiveStatus(status: string): boolean {
+  return status === "queued" || status === "running";
+}
+
 export function AutomationPage() {
-  const { runs, loading, error, busy, startScrape, startAutofill, confirm } = useAutomation();
-  const { applications, reload: refreshApps } = useApplications("");
-  const [query, setQuery] = useState("software engineer");
+  const { runs, loading, error, busy, startAutofill, confirm, cancel } = useAutomation();
+  const { applications, add, reload: refreshApps } = useApplications("");
+
+  const [company, setCompany] = useState("");
+  const [roleTitle, setRoleTitle] = useState("");
   const [jobUrl, setJobUrl] = useState("");
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+  const [savingWishlist, setSavingWishlist] = useState(false);
+
   const [applicationId, setApplicationId] = useState("");
   const [formUrl, setFormUrl] = useState(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
 
   const selected = applications.find((app) => app.id === applicationId);
+  const canAddWishlist =
+    company.trim() !== "" && roleTitle.trim() !== "" && jobUrl.trim() !== "";
 
   function onSelectApplication(id: string) {
     setApplicationId(id);
@@ -60,14 +71,30 @@ export function AutomationPage() {
     }
   }
 
-  async function onSearch() {
-    const q = query.trim();
-    const u = jobUrl.trim();
-    if (!q && !u) {
-      return;
+  async function onAddToWishlist() {
+    if (!canAddWishlist) return;
+    setSavingWishlist(true);
+    setWishlistError(null);
+    try {
+      const created = await add({
+        company: company.trim(),
+        roleTitle: roleTitle.trim(),
+        jobUrl: jobUrl.trim(),
+        status: "wishlist",
+      });
+      setApplicationId(created.id);
+      if (created.jobUrl) {
+        setFormUrl(created.jobUrl);
+      }
+      setCompany("");
+      setRoleTitle("");
+      setJobUrl("");
+      await refreshApps();
+    } catch (err) {
+      setWishlistError(err instanceof Error ? err.message : "Could not add to Wishlist");
+    } finally {
+      setSavingWishlist(false);
     }
-    await startScrape(q, u || undefined);
-    await refreshApps();
   }
 
   async function onMarkApplied(runId: string) {
@@ -80,17 +107,29 @@ export function AutomationPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold">Apply with assistance</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Search or paste a job link, prepare the application form with your profile, open it to
-          double-check, submit yourself, then mark it Applied on your board. JobPilot never submits
-          without you.
+          Save a job link to your Wishlist for later, prepare the application form with your
+          profile, open it to double-check, submit yourself, then mark it Applied on your board.
+          JobPilot never submits without you.
         </p>
       </div>
 
       <ol className="grid gap-3 md:grid-cols-3">
         {[
-          { n: "1", t: "Find roles", d: "Search or paste an apply link — we add them to Wishlist." },
-          { n: "2", t: "Prepare form", d: "Autofill from your profile. You review before sending." },
-          { n: "3", t: "Submit & track", d: "Submit on the employer site, then mark Applied here." },
+          {
+            n: "1",
+            t: "Save to Wishlist",
+            d: "Paste the apply link and add company + title — same details as your board.",
+          },
+          {
+            n: "2",
+            t: "Prepare form",
+            d: "Autofill from your profile. You review before sending.",
+          },
+          {
+            n: "3",
+            t: "Submit & track",
+            d: "Submit on the employer site, then mark Applied here.",
+          },
         ].map((step) => (
           <li
             key={step.n}
@@ -107,43 +146,61 @@ export function AutomationPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-primary" />
-              Find jobs
+              <BookmarkPlus className="h-4 w-4 text-primary" />
+              Add to Wishlist
             </CardTitle>
             <CardDescription>
-              Sample search results create Wishlist cards with company, title, and apply link.
+              Save a role for later on your{" "}
+              <Link to="/applications" className="text-primary underline-offset-2 hover:underline">
+                Applications
+              </Link>{" "}
+              board. Use the same company, title, and link you would enter when adding manually.
               Complete your{" "}
               <Link to="/settings" className="text-primary underline-offset-2 hover:underline">
                 profile
               </Link>{" "}
-              first for better autofill.
+              for better autofill.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="query">What kind of job?</Label>
+              <Label htmlFor="jobUrl">Application link</Label>
               <Input
-                id="query"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="e.g. product designer, data analyst"
+                id="jobUrl"
+                type="url"
+                value={jobUrl}
+                onChange={(e) => setJobUrl(e.target.value)}
+                placeholder="https://jobs.example.com/…"
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="jobUrl">Or paste an application link</Label>
+              <Label htmlFor="company">Company</Label>
               <Input
-                id="jobUrl"
-                value={jobUrl}
-                onChange={(e) => setJobUrl(e.target.value)}
-                placeholder="https://…"
+                id="company"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="e.g. RBC"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="roleTitle">Job title</Label>
+              <Input
+                id="roleTitle"
+                value={roleTitle}
+                onChange={(e) => setRoleTitle(e.target.value)}
+                placeholder="e.g. Software Developer (Winter 2027)"
+                required
               />
             </div>
             <Button
-              disabled={busy || (!query.trim() && !jobUrl.trim())}
-              onClick={() => void onSearch()}
+              disabled={savingWishlist || !canAddWishlist}
+              onClick={() => void onAddToWishlist()}
             >
-              Search & add to Wishlist
+              {savingWishlist ? "Saving…" : "Add to Wishlist"}
             </Button>
+            {wishlistError ? <p className="text-sm text-destructive">{wishlistError}</p> : null}
           </CardContent>
         </Card>
 
@@ -197,13 +254,17 @@ export function AutomationPage() {
       <Card>
         <CardHeader>
           <CardTitle>Activity</CardTitle>
-          <CardDescription>Searches, prepared forms, and apply confirmations.</CardDescription>
+          <CardDescription>
+            Prepared forms and apply confirmations. Stop anything still queued or running.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? <Skeleton className="h-24 w-full" /> : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {!loading && runs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity yet — start with a search.</p>
+            <p className="text-sm text-muted-foreground">
+              No activity yet — add a Wishlist role, then prepare a form.
+            </p>
           ) : null}
           {runs.map((run) => {
             const awaiting = run.logs.some((log) => log.step === "awaiting_confirm");
@@ -213,38 +274,52 @@ export function AutomationPage() {
             const screenshot = [...run.logs]
               .reverse()
               .find((log) => log.screenshotUrl?.startsWith("data:image"));
+            const canStop = isActiveStatus(run.status);
 
             return (
               <div key={run.id} className="rounded-xl border border-border bg-background/40 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium capitalize text-foreground">
-                      {run.type === "scrape" ? "Job search" : "Form prepare"} · {run.status}
+                      {run.type === "scrape" ? "Legacy search" : "Form prepare"} · {run.status}
                     </p>
                     <p className="text-xs text-muted-foreground">{run.id}</p>
                   </div>
-                  {run.type === "autofill" && awaiting && !marked ? (
-                    <div className="flex flex-wrap gap-2">
-                      {reviewUrl ? (
-                        <Button asChild size="sm" variant="outline">
-                          <a href={reviewUrl} target="_blank" rel="noreferrer">
-                            Open form to review
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
-                      ) : null}
-                      <Button size="sm" disabled={busy} onClick={() => void onMarkApplied(run.id)}>
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        I submitted — mark Applied
+                  <div className="flex flex-wrap gap-2">
+                    {canStop ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => void cancel(run.id)}
+                      >
+                        <Square className="h-3.5 w-3.5" />
+                        Stop
                       </Button>
-                    </div>
-                  ) : null}
-                  {marked ? (
-                    <p className="flex items-center gap-1 text-sm text-accent">
-                      <CheckCircle2 className="h-4 w-4" />
-                      On your Applied column
-                    </p>
-                  ) : null}
+                    ) : null}
+                    {run.type === "autofill" && awaiting && !marked ? (
+                      <>
+                        {reviewUrl ? (
+                          <Button asChild size="sm" variant="outline">
+                            <a href={reviewUrl} target="_blank" rel="noreferrer">
+                              Open form to review
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        ) : null}
+                        <Button size="sm" disabled={busy} onClick={() => void onMarkApplied(run.id)}>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          I submitted — mark Applied
+                        </Button>
+                      </>
+                    ) : null}
+                    {marked ? (
+                      <p className="flex items-center gap-1 text-sm text-accent">
+                        <CheckCircle2 className="h-4 w-4" />
+                        On your Applied column
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
 
                 {Object.keys(fields).length > 0 ? (

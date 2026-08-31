@@ -28,6 +28,24 @@ describe("automation routes", () => {
     const body = (await response.json()) as { data: unknown[] };
     expect(body.data.length).toBeGreaterThan(0);
   });
+
+  it("cancels a queued run", async () => {
+    const app = createTestApp();
+    const queued = await app.request("/api/automation/scrape", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-user-id": "user_1" },
+      body: JSON.stringify({ query: "swe" }),
+    });
+    const { runId } = (await queued.json()) as { runId: string };
+
+    const response = await app.request(`/api/automation/runs/${runId}/cancel`, {
+      method: "POST",
+      headers: { "x-user-id": "user_1" },
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string };
+    expect(body.status).toBe("canceled");
+  });
 });
 
 describe("analytics routes", () => {
