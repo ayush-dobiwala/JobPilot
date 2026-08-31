@@ -50,6 +50,7 @@ export type {
   PortalSessionResponse,
   QueueJobResponse,
   ScrapeJobRequest,
+  WishlistFromUrlResponse,
   UpdateApplicationRequest,
   UpdateProfileRequest,
   UpdateResumeRequest,

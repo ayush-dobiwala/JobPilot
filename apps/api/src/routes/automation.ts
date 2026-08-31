@@ -38,6 +38,53 @@ export function createAutomationRouter(store: AutomationStore): Hono<AppEnv> {
     }
   });
 
+  router.post("/wishlist", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+    if (typeof body !== "object" || body === null) {
+      return c.json({ error: "Invalid body" }, 400);
+    }
+    const record = body as Record<string, unknown>;
+    if (typeof record.url !== "string" || record.url.trim() === "") {
+      return c.json({ error: "A job page URL is required" }, 400);
+    }
+    const url = record.url.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      return c.json({ error: "Job URL must start with http:// or https://" }, 400);
+    }
+    try {
+      const result = await store.importWishlistFromUrl(c.get("clerkUserId"), url);
+      return c.json(result, 201);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save Wishlist job";
+      return c.json({ error: message }, 502);
+    }
+  });
+
+  router.delete("/runs/:id", async (c) => {
+    try {
+      const ok = await store.deleteRun(c.get("clerkUserId"), c.req.param("id"));
+      if (!ok) {
+        return c.json({ error: "Automation run not found" }, 404);
+      }
+      return c.json({ ok: true });
+    } catch (error) {
+      if (error instanceof AutomationCancelError) {
+        return c.json({ error: error.message }, 409);
+      }
+      throw error;
+    }
+  });
+
+  router.delete("/runs", async (c) => {
+    const removed = await store.clearFinishedRuns(c.get("clerkUserId"));
+    return c.json({ removed });
+  });
+
   router.post("/scrape", async (c) => {
     let body: unknown;
     try {

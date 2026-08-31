@@ -46,6 +46,50 @@ describe("automation routes", () => {
     const body = (await response.json()) as { status: string };
     expect(body.status).toBe("canceled");
   });
+
+  it("removes finished runs and clears all finished", async () => {
+    const app = createTestApp();
+    const queued = await app.request("/api/automation/scrape", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-user-id": "user_1" },
+      body: JSON.stringify({ query: "swe" }),
+    });
+    const { runId } = (await queued.json()) as { runId: string };
+    await app.request(`/api/automation/runs/${runId}/cancel`, {
+      method: "POST",
+      headers: { "x-user-id": "user_1" },
+    });
+
+    const removeOne = await app.request(`/api/automation/runs/${runId}`, {
+      method: "DELETE",
+      headers: { "x-user-id": "user_1" },
+    });
+    expect(removeOne.status).toBe(200);
+
+    await app.request("/api/automation/scrape", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-user-id": "user_1" },
+      body: JSON.stringify({ query: "again" }),
+    });
+    const runs = await app.request("/api/automation/runs", {
+      headers: { "x-user-id": "user_1" },
+    });
+    const list = (await runs.json()) as { data: { id: string; status: string }[] };
+    const activeId = list.data[0]?.id;
+    expect(activeId).toBeTruthy();
+    await app.request(`/api/automation/runs/${activeId}/cancel`, {
+      method: "POST",
+      headers: { "x-user-id": "user_1" },
+    });
+
+    const clear = await app.request("/api/automation/runs", {
+      method: "DELETE",
+      headers: { "x-user-id": "user_1" },
+    });
+    expect(clear.status).toBe(200);
+    const cleared = (await clear.json()) as { removed: number };
+    expect(cleared.removed).toBeGreaterThan(0);
+  });
 });
 
 describe("analytics routes", () => {

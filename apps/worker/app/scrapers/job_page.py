@@ -186,13 +186,16 @@ def extract_from_html(html: str, url: str) -> Job:
 
 
 def _fetch_html_httpx(url: str) -> str:
-    with httpx.Client(follow_redirects=True, timeout=25.0, headers={"User-Agent": USER_AGENT}) as client:
+    with httpx.Client(follow_redirects=True, timeout=12.0, headers={"User-Agent": USER_AGENT}) as client:
         response = client.get(url)
         response.raise_for_status()
         return response.text
 
 
 def _fetch_html_selenium(url: str) -> str | None:
+    # Browser cold-start is slow on free hosts — only when explicitly enabled.
+    if os.environ.get("JOB_PAGE_USE_BROWSER", "").lower() not in {"1", "true", "yes"}:
+        return None
     try:
         from app.selenium_driver import can_create_driver, create_driver
     except Exception:
@@ -201,14 +204,26 @@ def _fetch_html_selenium(url: str) -> str | None:
         return None
     driver = create_driver(headless=True)
     try:
-        driver.set_page_load_timeout(30)
+        driver.set_page_load_timeout(20)
         driver.get(url)
         return driver.page_source or None
     finally:
         driver.quit()
 
 
+def _looks_complete(job: Job) -> bool:
+    weak_titles = {"role from job link", "role from application link"}
+    if job.title.lower().strip() in weak_titles:
+        return False
+    return len(job.company.strip()) >= 2 and len(job.title.strip()) >= 4
+
+
 def _llm_refine(job: Job, html: str) -> Job | None:
+    if os.environ.get("JOB_PAGE_USE_AI", "true").lower() in {"0", "false", "no"}:
+        return None
+    if _looks_complete(job):
+        return None
+
     api_key = (os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENROUTER_API_KEY") or "").strip()
     if not api_key:
         return None
@@ -226,7 +241,7 @@ def _llm_refine(job: Job, html: str) -> Job | None:
     text = re.sub(r"(?is)<script.*?>.*?</script>", " ", html)
     text = re.sub(r"(?is)<style.*?>.*?</style>", " ", text)
     text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()[:6000]
+    text = re.sub(r"\s+", " ", text).strip()[:4000]
 
     payload = {
         "model": model,
@@ -255,7 +270,7 @@ def _llm_refine(job: Job, html: str) -> Job | None:
         headers["X-Title"] = "JobPilot"
 
     try:
-        with httpx.Client(timeout=40.0) as client:
+        with httpx.Client(timeout=12.0) as client:
             response = client.post(f"{base}/chat/completions", headers=headers, json=payload)
             response.raise_for_status()
             body = response.json()
@@ -291,7 +306,11 @@ def scrape_job_page(url: str) -> tuple[Job, list[LogEntry]]:
     except Exception as exc:  # noqa: BLE001 — surface to logs, try Selenium
         logs.append(LogEntry(step="fetch_http", message=f"Direct fetch failed: {exc}"))
 
-    if not html or len(html) < 200:
+    if (not html or len(html) < 200) and os.environ.get("JOB_PAGE_USE_BROWSER", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
         selenium_html = _fetch_html_selenium(url)
         if selenium_html:
             html = selenium_html
@@ -332,6 +351,8 @@ def scrape_job_page(url: str) -> tuple[Job, list[LogEntry]]:
                 message=f"AI refined details to “{job.title}” at {job.company}.",
             )
         )
+    elif _looks_complete(job):
+        logs.append(LogEntry(step="skip_ai", message="Page already had clear title/company — skipped AI."))
 
     logs.append(LogEntry(step="complete", message="Ready to save on your Wishlist."))
     return job, logs

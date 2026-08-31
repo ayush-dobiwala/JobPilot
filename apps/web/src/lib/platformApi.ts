@@ -10,6 +10,7 @@ import type {
   ScrapeJobRequest,
   Subscription,
   UpdateProfileRequest,
+  WishlistFromUrlResponse,
 } from "@jobpilot/shared-types";
 import { apiFetch } from "@/lib/api";
 
@@ -42,6 +43,55 @@ export async function enqueueScrape(
     throw new Error(message);
   }
   return (await response.json()) as QueueJobResponse;
+}
+
+export async function importWishlistFromUrl(
+  token: string,
+  url: string,
+): Promise<WishlistFromUrlResponse> {
+  const response = await apiFetch("/api/automation/wishlist", token, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!response.ok) {
+    let message = "Failed to save job from link";
+    try {
+      const errBody = (await response.json()) as { error?: string };
+      if (errBody.error) message = errBody.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+  return (await response.json()) as WishlistFromUrlResponse;
+}
+
+export async function deleteAutomationRun(token: string, runId: string): Promise<void> {
+  const response = await apiFetch(`/api/automation/runs/${runId}`, token, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    let message = "Failed to remove activity";
+    try {
+      const errBody = (await response.json()) as { error?: string };
+      if (errBody.error) message = errBody.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+}
+
+export async function clearFinishedAutomationRuns(token: string): Promise<number> {
+  const response = await apiFetch("/api/automation/runs", token, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to clear finished activity");
+  }
+  const body = (await response.json()) as { removed: number };
+  return body.removed;
 }
 
 export async function enqueueAutofill(

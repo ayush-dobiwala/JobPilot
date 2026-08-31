@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { BookmarkPlus, CheckCircle2, ExternalLink, Square, Wand2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookmarkPlus, CheckCircle2, ExternalLink, Square, Trash2, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,9 +46,23 @@ function isActiveStatus(status: string): boolean {
   return status === "queued" || status === "running";
 }
 
+function isFinishedStatus(status: string): boolean {
+  return status === "success" || status === "failed" || status === "canceled";
+}
+
 export function AutomationPage() {
-  const { runs, loading, error, busy, saveJobFromUrl, startAutofill, confirm, cancel } =
-    useAutomation();
+  const {
+    runs,
+    loading,
+    error,
+    busy,
+    saveJobFromUrl,
+    startAutofill,
+    confirm,
+    cancel,
+    remove,
+    clearFinished,
+  } = useAutomation();
   const { applications, reload: refreshApps } = useApplications("");
 
   const [jobUrl, setJobUrl] = useState("");
@@ -57,32 +71,10 @@ export function AutomationPage() {
 
   const [applicationId, setApplicationId] = useState("");
   const [formUrl, setFormUrl] = useState(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
-  const seenSuccessRef = useRef<Set<string>>(new Set());
 
   const selected = applications.find((app) => app.id === applicationId);
   const canAddWishlist = /^https?:\/\//i.test(jobUrl.trim());
-
-  // When a Wishlist import finishes, refresh the board and select the new card.
-  useEffect(() => {
-    const done = runs.filter(
-      (run) =>
-        run.type === "scrape" &&
-        run.status === "success" &&
-        run.applicationId &&
-        !seenSuccessRef.current.has(run.id),
-    );
-    if (done.length === 0) return;
-    for (const run of done) {
-      seenSuccessRef.current.add(run.id);
-    }
-    const latest = done[0];
-    void (async () => {
-      await refreshApps();
-      if (latest?.applicationId) {
-        setApplicationId(latest.applicationId);
-      }
-    })();
-  }, [runs, refreshApps]);
+  const finishedCount = runs.filter((run) => isFinishedStatus(run.status)).length;
 
   useEffect(() => {
     if (!applicationId) return;
@@ -105,8 +97,11 @@ export function AutomationPage() {
     setSavingWishlist(true);
     setWishlistError(null);
     try {
-      await saveJobFromUrl(jobUrl.trim());
+      const result = await saveJobFromUrl(jobUrl.trim());
       setJobUrl("");
+      setApplicationId(result.applicationId);
+      setFormUrl(result.jobUrl);
+      await refreshApps();
     } catch (err) {
       setWishlistError(err instanceof Error ? err.message : "Could not add to Wishlist");
     } finally {
@@ -251,11 +246,24 @@ export function AutomationPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Activity</CardTitle>
-          <CardDescription>
-            Wishlist imports and form prepares. Stop anything still queued or running.
-          </CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle>Activity</CardTitle>
+            <CardDescription>
+              Wishlist imports and form prepares. Stop active jobs, or remove finished ones.
+            </CardDescription>
+          </div>
+          {finishedCount > 0 ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void clearFinished()}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear finished ({finishedCount})
+            </Button>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? <Skeleton className="h-24 w-full" /> : null}
@@ -274,6 +282,7 @@ export function AutomationPage() {
               .reverse()
               .find((log) => log.screenshotUrl?.startsWith("data:image"));
             const canStop = isActiveStatus(run.status);
+            const canRemove = isFinishedStatus(run.status);
 
             return (
               <div key={run.id} className="rounded-xl border border-border bg-background/40 p-4">
@@ -294,6 +303,17 @@ export function AutomationPage() {
                       >
                         <Square className="h-3.5 w-3.5" />
                         Stop
+                      </Button>
+                    ) : null}
+                    {canRemove ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => void remove(run.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
                       </Button>
                     ) : null}
                     {run.type === "autofill" && awaiting && !marked ? (

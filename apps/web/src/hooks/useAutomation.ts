@@ -1,13 +1,19 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useCallback, useEffect, useState } from "react";
-import type { AutomationRun } from "@jobpilot/shared-types";
+import type { AutomationRun, WishlistFromUrlResponse } from "@jobpilot/shared-types";
 import {
   cancelAutomationRun,
+  clearFinishedAutomationRuns,
   confirmSubmit,
+  deleteAutomationRun,
   enqueueAutofill,
-  enqueueScrape,
   fetchAutomationRuns,
+  importWishlistFromUrl,
 } from "@/lib/platformApi";
+
+const WORKER_URL =
+  import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "") ||
+  "https://jobpilot-worker-kx0g.onrender.com";
 
 export function useAutomation() {
   const { getToken } = useAuth();
@@ -35,14 +41,27 @@ export function useAutomation() {
   }, [getToken]);
 
   useEffect(() => {
+    // Wake the worker early so the first Wishlist save is faster on free hosts.
+    void fetch(`${WORKER_URL}/health`).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     void refresh();
-    const id = window.setInterval(() => {
-      void refresh();
-    }, 4000);
-    return () => window.clearInterval(id);
   }, [refresh]);
 
-  async function saveJobFromUrl(url: string) {
+  const hasActiveRuns = runs.some((run) => run.status === "queued" || run.status === "running");
+
+  useEffect(() => {
+    const id = window.setInterval(
+      () => {
+        void refresh();
+      },
+      hasActiveRuns ? 2000 : 8000,
+    );
+    return () => window.clearInterval(id);
+  }, [refresh, hasActiveRuns]);
+
+  async function saveJobFromUrl(url: string): Promise<WishlistFromUrlResponse> {
     setBusy(true);
     setError(null);
     try {
@@ -50,8 +69,9 @@ export function useAutomation() {
       if (!token) {
         throw new Error("Not signed in");
       }
-      await enqueueScrape(token, { url });
+      const result = await importWishlistFromUrl(token, url);
       await refresh();
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save job from link");
       throw err;
@@ -114,5 +134,53 @@ export function useAutomation() {
     }
   }
 
-  return { runs, loading, error, busy, saveJobFromUrl, startAutofill, confirm, cancel, refresh };
+  async function remove(runId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Not signed in");
+      }
+      await deleteAutomationRun(token, runId);
+      setRuns((prev) => prev.filter((run) => run.id !== runId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove activity");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function clearFinished() {
+    setBusy(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Not signed in");
+      }
+      await clearFinishedAutomationRuns(token);
+      setRuns((prev) => prev.filter((run) => run.status === "queued" || run.status === "running"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear finished activity");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return {
+    runs,
+    loading,
+    error,
+    busy,
+    saveJobFromUrl,
+    startAutofill,
+    confirm,
+    cancel,
+    remove,
+    clearFinished,
+    refresh,
+  };
 }

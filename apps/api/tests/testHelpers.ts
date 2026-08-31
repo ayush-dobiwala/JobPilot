@@ -108,6 +108,52 @@ class MemoryAutomationStore implements AutomationStore {
     this.runs.set(runId, updated);
     return updated;
   }
+
+  async importWishlistFromUrl(userId: string, url: string) {
+    const runId = crypto.randomUUID();
+    const applicationId = crypto.randomUUID();
+    this.runs.set(runId, {
+      id: runId,
+      userId,
+      applicationId,
+      type: "scrape",
+      status: "success",
+      logs: [],
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+    });
+    return {
+      runId,
+      applicationId,
+      company: "Demo Co",
+      roleTitle: "Role from link",
+      jobUrl: url,
+    };
+  }
+
+  async deleteRun(userId: string, runId: string) {
+    const run = await this.getRun(userId, runId);
+    if (!run) return false;
+    if (run.status === "queued" || run.status === "running") {
+      throw new AutomationCancelError("Stop the job first, then you can remove it");
+    }
+    this.runs.delete(runId);
+    return true;
+  }
+
+  async clearFinishedRuns(userId: string) {
+    let removed = 0;
+    for (const [id, run] of this.runs) {
+      if (
+        run.userId === userId &&
+        (run.status === "success" || run.status === "failed" || run.status === "canceled")
+      ) {
+        this.runs.delete(id);
+        removed += 1;
+      }
+    }
+    return removed;
+  }
 }
 
 class MemoryAnalyticsStore implements AnalyticsStore {

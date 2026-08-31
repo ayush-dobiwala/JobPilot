@@ -5,7 +5,7 @@ import type {
   QueueJobResponse,
   ScrapeJobRequest,
 } from "@jobpilot/shared-types";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Database } from "../db/client.js";
 import {
   applicationEvents,
@@ -43,9 +43,21 @@ export interface AutomationStore {
   listRuns(userId: string): Promise<AutomationRun[]>;
   getRun(userId: string, runId: string): Promise<AutomationRun | null>;
   enqueueScrape(userId: string, input: ScrapeJobRequest): Promise<QueueJobResponse>;
+  importWishlistFromUrl(
+    userId: string,
+    url: string,
+  ): Promise<{
+    runId: string;
+    applicationId: string;
+    company: string;
+    roleTitle: string;
+    jobUrl: string;
+  }>;
   enqueueAutofill(userId: string, input: AutofillJobRequest): Promise<QueueJobResponse>;
   confirmSubmit(userId: string, runId: string): Promise<AutomationRun>;
   cancelRun(userId: string, runId: string): Promise<AutomationRun>;
+  deleteRun(userId: string, runId: string): Promise<boolean>;
+  clearFinishedRuns(userId: string): Promise<number>;
 }
 
 type WorkerLog = {
@@ -156,6 +168,120 @@ export function createAutomationService(
       });
 
       return { runId: run.id };
+    },
+
+    async importWishlistFromUrl(userId, rawUrl) {
+      const url = rawUrl.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        throw new Error("Job URL must start with http:// or https://");
+      }
+
+      const startedAt = new Date();
+      const [run] = await db
+        .insert(automationRuns)
+        .values({
+          userId,
+          type: "scrape",
+          status: "running",
+          startedAt,
+          logs: [
+            {
+              step: "running",
+              message: "Reading job page now (fast path — not waiting in queue)…",
+              timestamp: startedAt.toISOString(),
+            },
+          ],
+        })
+        .returning();
+
+      if (!run) {
+        throw new Error("Failed to create wishlist import run");
+      }
+
+      try {
+        const response = await fetch(`${workerBaseUrl.replace(/\/$/, "")}/scrape`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ query: null, url }),
+          signal: AbortSignal.timeout(45_000),
+        });
+        if (!response.ok) {
+          throw new Error(`Could not read job page (${response.status})`);
+        }
+        const body = (await response.json()) as {
+          jobs: Array<{ title: string; company: string; url: string; description?: string | null }>;
+          logs: WorkerLog[];
+        };
+        const scraped = body.jobs[0];
+        if (!scraped) {
+          throw new Error("No job details found on that page");
+        }
+
+        const jobUrl = absoluteWorkerUrl(workerBaseUrl, scraped.url || url);
+        await db.insert(scrapedJobs).values({
+          source: "generic",
+          title: scraped.title,
+          company: scraped.company,
+          description: scraped.description ?? null,
+          url: jobUrl,
+          raw: scraped as unknown as Record<string, unknown>,
+        });
+
+        const [app] = await db
+          .insert(applications)
+          .values({
+            userId,
+            company: scraped.company,
+            roleTitle: scraped.title,
+            jobUrl,
+            status: "wishlist",
+            source: "automation",
+            notes: scraped.description ?? null,
+          })
+          .returning();
+
+        if (!app) {
+          throw new Error("Failed to save Wishlist application");
+        }
+
+        const logs = [
+          ...normalizeLogs(body.logs),
+          {
+            step: "board_import",
+            message: `Added to Wishlist: ${app.company} — ${app.roleTitle}`,
+            timestamp: nowIso(),
+          },
+        ];
+
+        await db
+          .update(automationRuns)
+          .set({
+            status: "success",
+            finishedAt: new Date(),
+            applicationId: app.id,
+            logs,
+          })
+          .where(eq(automationRuns.id, run.id));
+
+        return {
+          runId: run.id,
+          applicationId: app.id,
+          company: app.company,
+          roleTitle: app.roleTitle,
+          jobUrl: app.jobUrl ?? jobUrl,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Wishlist import failed";
+        await db
+          .update(automationRuns)
+          .set({
+            status: "failed",
+            finishedAt: new Date(),
+            logs: [{ step: "failed", message, timestamp: nowIso() }],
+          })
+          .where(eq(automationRuns.id, run.id));
+        throw error;
+      }
     },
 
     async enqueueAutofill(userId, input) {
@@ -318,6 +444,34 @@ export function createAutomationService(
         throw new AutomationNotFoundError();
       }
       return toAutomationRun(updated);
+    },
+
+    async deleteRun(userId, runId) {
+      const run = await this.getRun(userId, runId);
+      if (!run) {
+        return false;
+      }
+      if (run.status === "queued" || run.status === "running") {
+        throw new AutomationCancelError("Stop the job first, then you can remove it");
+      }
+      const deleted = await db
+        .delete(automationRuns)
+        .where(and(eq(automationRuns.id, runId), eq(automationRuns.userId, userId)))
+        .returning({ id: automationRuns.id });
+      return deleted.length > 0;
+    },
+
+    async clearFinishedRuns(userId) {
+      const deleted = await db
+        .delete(automationRuns)
+        .where(
+          and(
+            eq(automationRuns.userId, userId),
+            inArray(automationRuns.status, ["success", "failed", "canceled"]),
+          ),
+        )
+        .returning({ id: automationRuns.id });
+      return deleted.length;
     },
   };
 }

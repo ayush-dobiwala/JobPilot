@@ -48,6 +48,14 @@ export interface MatchScoreResponse {
   suggestions: string[];
 }
 
+export interface WishlistFromUrlResponse {
+  runId: string;
+  applicationId: string;
+  company: string;
+  roleTitle: string;
+  jobUrl: string;
+}
+
 export interface ScrapeJobRequest {
   url?: string;
   query?: string;
