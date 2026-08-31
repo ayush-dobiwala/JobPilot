@@ -124,13 +124,22 @@ export function createAutomationService(
     },
 
     async enqueueScrape(userId, input) {
+      const url = input.url?.trim();
       const [run] = await db
         .insert(automationRuns)
         .values({
           userId,
           type: "scrape",
           status: "queued",
-          logs: [{ step: "queued", message: "Job search queued", timestamp: nowIso() }],
+          logs: [
+            {
+              step: "queued",
+              message: url
+                ? "Opening job page to read title and company for Wishlist…"
+                : "Job search queued",
+              timestamp: nowIso(),
+            },
+          ],
         })
         .returning();
 
@@ -143,7 +152,7 @@ export function createAutomationService(
         userId,
         type: "scrape",
         query: input.query ?? null,
-        url: input.url ?? null,
+        url: url ?? null,
       });
 
       return { runId: run.id };
@@ -374,6 +383,7 @@ export async function processAutomationJob(
       };
 
       const created: string[] = [];
+      let firstApplicationId: string | null = null;
       for (const scraped of body.jobs) {
         const jobUrl = absoluteWorkerUrl(workerBaseUrl, scraped.url);
         await db.insert(scrapedJobs).values({
@@ -399,6 +409,7 @@ export async function processAutomationJob(
           .returning();
         if (app) {
           created.push(`${app.company} — ${app.roleTitle}`);
+          firstApplicationId ??= app.id;
         }
       }
 
@@ -408,6 +419,7 @@ export async function processAutomationJob(
         .set({
           status: "success",
           finishedAt: new Date(),
+          ...(firstApplicationId ? { applicationId: firstApplicationId } : {}),
           logs: [
             ...logs,
             {

@@ -5,6 +5,7 @@ import {
   cancelAutomationRun,
   confirmSubmit,
   enqueueAutofill,
+  enqueueScrape,
   fetchAutomationRuns,
 } from "@/lib/platformApi";
 
@@ -40,6 +41,24 @@ export function useAutomation() {
     }, 4000);
     return () => window.clearInterval(id);
   }, [refresh]);
+
+  async function saveJobFromUrl(url: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Not signed in");
+      }
+      await enqueueScrape(token, { url });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save job from link");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function startAutofill(applicationId: string, formUrl: string) {
     setBusy(true);
@@ -95,5 +114,5 @@ export function useAutomation() {
     }
   }
 
-  return { runs, loading, error, busy, startAutofill, confirm, cancel, refresh };
+  return { runs, loading, error, busy, saveJobFromUrl, startAutofill, confirm, cancel, refresh };
 }

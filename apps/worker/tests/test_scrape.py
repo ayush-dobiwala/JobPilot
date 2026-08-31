@@ -26,6 +26,20 @@ def test_scrape_fixture_board_url() -> None:
     assert body["jobs"][0]["title"] == "Senior Backend Engineer"
 
 
+def test_scrape_job_posting_page_extracts_title_and_company() -> None:
+    response = client.post(
+        "/scrape",
+        json={"query": None, "url": "http://testserver/fixtures/demo-job-posting.html"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["jobs"]) == 1
+    job = body["jobs"][0]
+    assert job["title"] == "Software Developer, 8 Months"
+    assert job["company"] == "Contoso"
+    assert "Internship" in (job.get("description") or "")
+
+
 def test_demo_apply_fixture_route() -> None:
     response = client.get("/fixtures/demo-apply.html")
     assert response.status_code == 200

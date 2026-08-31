@@ -32,7 +32,14 @@ export async function enqueueScrape(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error("Failed to queue scrape");
+    let message = "Failed to save job from link";
+    try {
+      const errBody = (await response.json()) as { error?: string };
+      if (errBody.error) message = errBody.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
   }
   return (await response.json()) as QueueJobResponse;
 }

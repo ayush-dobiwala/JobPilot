@@ -7,9 +7,11 @@ from urllib.parse import quote, unquote, urlparse
 from app.models.common import LogEntry
 from app.models.scrape import Job
 from app.scrapers.base import BaseScraper
+from app.scrapers.job_page import extract_from_html, scrape_job_page
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 JOBS_BOARD_FIXTURE = FIXTURES_DIR / "demo_jobs_board.html"
+JOB_POSTING_FIXTURE = FIXTURES_DIR / "demo_job_posting.html"
 
 
 class _JobsBoardParser(HTMLParser):
@@ -110,6 +112,11 @@ def _is_fixture_board_url(url: str) -> bool:
     return "demo_jobs_board" in normalized or normalized.endswith("/fixtures/demo-jobs-board.html")
 
 
+def _is_job_posting_fixture_url(url: str) -> bool:
+    normalized = unquote(url).lower()
+    return "demo_job_posting" in normalized or "demo-job-posting" in normalized
+
+
 def _read_fixture_board() -> list[Job]:
     html = JOBS_BOARD_FIXTURE.read_text(encoding="utf-8")
     parser = _JobsBoardParser()
@@ -124,7 +131,7 @@ class GenericScraper(BaseScraper):
         logs: list[LogEntry] = [
             LogEntry(
                 step="init",
-                message="Searching jobs (demo board / sample listings for safe HITL testing).",
+                message="Reading job details for your Wishlist.",
             )
         ]
 
@@ -138,6 +145,18 @@ class GenericScraper(BaseScraper):
             )
             return jobs, logs
 
+        if url and _is_job_posting_fixture_url(url):
+            logs.append(LogEntry(step="fixture", message=f"Reading job posting fixture: {url}"))
+            html = JOB_POSTING_FIXTURE.read_text(encoding="utf-8")
+            job = extract_from_html(html, url)
+            logs.append(
+                LogEntry(
+                    step="complete",
+                    message=f"Parsed “{job.title}” at {job.company} from fixture.",
+                )
+            )
+            return [job], logs
+
         if url and url.startswith("file://"):
             path = Path(unquote(urlparse(url).path))
             if path.name == "demo_jobs_board.html" and path.exists():
@@ -150,24 +169,15 @@ class GenericScraper(BaseScraper):
                     LogEntry(step="complete", message=f"Parsed {len(jobs)} jobs from file fixture.")
                 )
                 return jobs, logs
+            if path.name == "demo_job_posting.html" and path.exists():
+                logs.append(LogEntry(step="fixture", message=f"Reading file URL: {url}"))
+                job = extract_from_html(path.read_text(encoding="utf-8"), url)
+                return [job], logs
 
         if url and url.startswith("http"):
-            company_host = urlparse(url).hostname or "company"
-            company = company_host.replace("www.", "").split(".")[0].title()
-            logs.append(
-                LogEntry(
-                    step="url",
-                    message="Using the pasted application link as a single job to track.",
-                )
-            )
-            return [
-                Job(
-                    title="Role from application link",
-                    company=company,
-                    url=url,
-                    description="Application link provided by you.",
-                )
-            ], logs
+            job, page_logs = scrape_job_page(url)
+            logs.extend(page_logs)
+            return [job], logs
 
         if query:
             logs.append(

@@ -45,9 +45,18 @@ def serve_demo_jobs_board_fixture() -> FileResponse:
     return FileResponse(path, media_type="text/html")
 
 
+@app.get("/fixtures/demo-job-posting.html")
+def serve_demo_job_posting_fixture() -> FileResponse:
+    """Serve a single JobPosting page used by Wishlist URL extraction tests."""
+    path = FIXTURES_DIR / "demo_job_posting.html"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="demo_job_posting.html fixture not found")
+    return FileResponse(path, media_type="text/html")
+
+
 @app.post("/scrape", response_model=ScrapeResponse)
 def scrape_jobs(body: ScrapeRequest) -> ScrapeResponse:
-    """Scrape jobs from a fixture board or return deterministic demo listings."""
+    """Open a job URL (or demo fixtures) and return title/company for Wishlist."""
     return run_scrape(body)
 
 

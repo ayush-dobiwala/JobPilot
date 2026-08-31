@@ -50,14 +50,17 @@ export function createAutomationRouter(store: AutomationStore): Hono<AppEnv> {
     }
     const record = body as Record<string, unknown>;
     const input: { url?: string; query?: string } = {};
-    if (typeof record.url === "string") {
-      input.url = record.url;
+    if (typeof record.url === "string" && record.url.trim() !== "") {
+      input.url = record.url.trim();
     }
-    if (typeof record.query === "string") {
-      input.query = record.query;
+    if (typeof record.query === "string" && record.query.trim() !== "") {
+      input.query = record.query.trim();
     }
     if (!input.url && !input.query) {
-      return c.json({ error: "url or query is required" }, 400);
+      return c.json({ error: "A job page URL is required" }, 400);
+    }
+    if (input.url && !/^https?:\/\//i.test(input.url)) {
+      return c.json({ error: "Job URL must start with http:// or https://" }, 400);
     }
     const result = await store.enqueueScrape(c.get("clerkUserId"), input);
     return c.json(result, 202);

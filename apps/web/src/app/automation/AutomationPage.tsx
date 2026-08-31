@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BookmarkPlus, CheckCircle2, ExternalLink, Square, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -47,20 +47,50 @@ function isActiveStatus(status: string): boolean {
 }
 
 export function AutomationPage() {
-  const { runs, loading, error, busy, startAutofill, confirm, cancel } = useAutomation();
-  const { applications, add, reload: refreshApps } = useApplications("");
+  const { runs, loading, error, busy, saveJobFromUrl, startAutofill, confirm, cancel } =
+    useAutomation();
+  const { applications, reload: refreshApps } = useApplications("");
 
-  const [company, setCompany] = useState("");
-  const [roleTitle, setRoleTitle] = useState("");
   const [jobUrl, setJobUrl] = useState("");
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [savingWishlist, setSavingWishlist] = useState(false);
 
   const [applicationId, setApplicationId] = useState("");
   const [formUrl, setFormUrl] = useState(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
+  const seenSuccessRef = useRef<Set<string>>(new Set());
 
   const selected = applications.find((app) => app.id === applicationId);
-  const canAddWishlist = company.trim() !== "" && roleTitle.trim() !== "" && jobUrl.trim() !== "";
+  const canAddWishlist = /^https?:\/\//i.test(jobUrl.trim());
+
+  // When a Wishlist import finishes, refresh the board and select the new card.
+  useEffect(() => {
+    const done = runs.filter(
+      (run) =>
+        run.type === "scrape" &&
+        run.status === "success" &&
+        run.applicationId &&
+        !seenSuccessRef.current.has(run.id),
+    );
+    if (done.length === 0) return;
+    for (const run of done) {
+      seenSuccessRef.current.add(run.id);
+    }
+    const latest = done[0];
+    void (async () => {
+      await refreshApps();
+      if (latest?.applicationId) {
+        setApplicationId(latest.applicationId);
+      }
+    })();
+  }, [runs, refreshApps]);
+
+  useEffect(() => {
+    if (!applicationId) return;
+    const app = applications.find((row) => row.id === applicationId);
+    if (app?.jobUrl) {
+      setFormUrl(app.jobUrl);
+    }
+  }, [applicationId, applications]);
 
   function onSelectApplication(id: string) {
     setApplicationId(id);
@@ -75,20 +105,8 @@ export function AutomationPage() {
     setSavingWishlist(true);
     setWishlistError(null);
     try {
-      const created = await add({
-        company: company.trim(),
-        roleTitle: roleTitle.trim(),
-        jobUrl: jobUrl.trim(),
-        status: "wishlist",
-      });
-      setApplicationId(created.id);
-      if (created.jobUrl) {
-        setFormUrl(created.jobUrl);
-      }
-      setCompany("");
-      setRoleTitle("");
+      await saveJobFromUrl(jobUrl.trim());
       setJobUrl("");
-      await refreshApps();
     } catch (err) {
       setWishlistError(err instanceof Error ? err.message : "Could not add to Wishlist");
     } finally {
@@ -106,8 +124,8 @@ export function AutomationPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold">Apply with assistance</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Save a job link to your Wishlist for later, prepare the application form with your
-          profile, open it to double-check, submit yourself, then mark it Applied on your board.
+          Paste a job page link — we open it, read the title and company, and save it on your
+          Wishlist so you can apply later. Then prepare the form, submit yourself, and mark Applied.
           JobPilot never submits without you.
         </p>
       </div>
@@ -117,7 +135,7 @@ export function AutomationPage() {
           {
             n: "1",
             t: "Save to Wishlist",
-            d: "Paste the apply link and add company + title — same details as your board.",
+            d: "Paste the job description link. We fill in company and title for you.",
           },
           {
             n: "2",
@@ -149,55 +167,38 @@ export function AutomationPage() {
               Add to Wishlist
             </CardTitle>
             <CardDescription>
-              Save a role for later on your{" "}
+              Only the job page URL is required. We open the page in the background, pull company +
+              title, and add a card on your{" "}
               <Link to="/applications" className="text-primary underline-offset-2 hover:underline">
                 Applications
               </Link>{" "}
-              board. Use the same company, title, and link you would enter when adding manually.
-              Complete your{" "}
+              board for later. Complete your{" "}
               <Link to="/settings" className="text-primary underline-offset-2 hover:underline">
                 profile
               </Link>{" "}
-              for better autofill.
+              for better autofill when you apply.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="jobUrl">Application link</Label>
+              <Label htmlFor="jobUrl">Job page link</Label>
               <Input
                 id="jobUrl"
                 type="url"
                 value={jobUrl}
                 onChange={(e) => setJobUrl(e.target.value)}
-                placeholder="https://jobs.example.com/…"
+                placeholder="https://jobs.example.com/…/role-name"
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
-              <Input
-                id="company"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="e.g. RBC"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="roleTitle">Job title</Label>
-              <Input
-                id="roleTitle"
-                value={roleTitle}
-                onChange={(e) => setRoleTitle(e.target.value)}
-                placeholder="e.g. Software Developer (Winter 2027)"
-                required
-              />
+              <p className="text-xs text-muted-foreground">
+                Use the job description / posting page (not a search results page).
+              </p>
             </div>
             <Button
-              disabled={savingWishlist || !canAddWishlist}
+              disabled={savingWishlist || busy || !canAddWishlist}
               onClick={() => void onAddToWishlist()}
             >
-              {savingWishlist ? "Saving…" : "Add to Wishlist"}
+              {savingWishlist || busy ? "Reading job page…" : "Save to Wishlist"}
             </Button>
             {wishlistError ? <p className="text-sm text-destructive">{wishlistError}</p> : null}
           </CardContent>
@@ -210,8 +211,7 @@ export function AutomationPage() {
               Prepare application
             </CardTitle>
             <CardDescription>
-              We fill the form with your saved details, take a screenshot, then open it for you to
-              review.
+              Pick a Wishlist role, prepare the form with your profile, then open it to review.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -254,7 +254,7 @@ export function AutomationPage() {
         <CardHeader>
           <CardTitle>Activity</CardTitle>
           <CardDescription>
-            Prepared forms and apply confirmations. Stop anything still queued or running.
+            Wishlist imports and form prepares. Stop anything still queued or running.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -262,7 +262,7 @@ export function AutomationPage() {
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {!loading && runs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No activity yet — add a Wishlist role, then prepare a form.
+              No activity yet — paste a job link above to save it on Wishlist.
             </p>
           ) : null}
           {runs.map((run) => {
@@ -280,7 +280,7 @@ export function AutomationPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium capitalize text-foreground">
-                      {run.type === "scrape" ? "Legacy search" : "Form prepare"} · {run.status}
+                      {run.type === "scrape" ? "Wishlist import" : "Form prepare"} · {run.status}
                     </p>
                     <p className="text-xs text-muted-foreground">{run.id}</p>
                   </div>
