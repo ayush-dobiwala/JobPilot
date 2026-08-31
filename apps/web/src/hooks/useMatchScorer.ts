@@ -39,37 +39,58 @@ export function useMatchScorer() {
 
   const saveResume = useCallback(
     async (parsedText: string, label: string) => {
-      const token = await getToken();
-      const created = await createResume(token, {
-        parsedText,
-        label,
-        isPrimary: resumes.length === 0,
-      });
-      setResumes((prev) => [created, ...prev]);
-      return created;
+      try {
+        const token = await getToken();
+        const created = await createResume(token, {
+          parsedText,
+          label,
+          isPrimary: resumes.length === 0,
+        });
+        setResumes((prev) => [created, ...prev.filter((row) => row.id !== created.id)]);
+        setError(null);
+        return created;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not save resume";
+        setError(message);
+        throw err;
+      }
     },
     [getToken, resumes.length],
   );
 
   const uploadResume = useCallback(
     async (file: File, label: string) => {
-      const token = await getToken();
-      const created = await uploadResumeFile(token, file, {
-        label,
-        isPrimary: resumes.length === 0,
-      });
-      setResumes((prev) => [created, ...prev]);
-      return created;
+      try {
+        const token = await getToken();
+        const created = await uploadResumeFile(token, file, {
+          label,
+          isPrimary: resumes.length === 0,
+        });
+        setResumes((prev) => [created, ...prev.filter((row) => row.id !== created.id)]);
+        setError(null);
+        return created;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not upload resume";
+        setError(message);
+        throw err;
+      }
     },
     [getToken, resumes.length],
   );
 
   const renameResume = useCallback(
     async (id: string, label: string) => {
-      const token = await getToken();
-      const updated = await updateResume(token, id, { label });
-      setResumes((prev) => prev.map((row) => (row.id === id ? updated : row)));
-      return updated;
+      try {
+        const token = await getToken();
+        const updated = await updateResume(token, id, { label });
+        setResumes((prev) => prev.map((row) => (row.id === id ? updated : row)));
+        setError(null);
+        return updated;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not rename resume";
+        setError(message);
+        throw err;
+      }
     },
     [getToken],
   );

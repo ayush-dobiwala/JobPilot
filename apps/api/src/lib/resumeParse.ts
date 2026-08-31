@@ -56,7 +56,7 @@ export async function extractResumeText(filename: string, buffer: Buffer): Promi
   const text = ext === ".pdf" ? await extractPdfText(buffer) : await extractDocxText(buffer);
   if (!text) {
     throw new ResumeParseError(
-      "Could not read text from that file. Try another export or paste the text.",
+      "Could not read text from that file (common with scanned/image PDFs). Export a text PDF, or paste the resume text instead.",
     );
   }
   return text;

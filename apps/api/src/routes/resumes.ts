@@ -62,8 +62,13 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
     if (!parsed) {
       return c.json({ error: "parsedText is required" }, 400);
     }
-    const created = await store.create(c.get("clerkUserId"), parsed);
-    return c.json(created, 201);
+    try {
+      const created = await store.create(c.get("clerkUserId"), parsed);
+      return c.json(created, 201);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save resume";
+      return c.json({ error: message }, 500);
+    }
   });
 
   router.post("/upload", async (c) => {
@@ -75,9 +80,16 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
     }
 
     const file = form.get("file");
-    if (!(file instanceof File)) {
+    if (!(file instanceof Blob)) {
       return c.json({ error: "file is required (PDF or Word .docx)" }, 400);
     }
+    const filename =
+      file instanceof File && file.name.trim() !== ""
+        ? file.name
+        : typeof (file as { name?: unknown }).name === "string" &&
+            (file as { name: string }).name.trim() !== ""
+          ? (file as { name: string }).name
+          : "resume.pdf";
 
     const labelRaw = form.get("label");
     const label =
@@ -87,26 +99,33 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
     const isPrimary =
       typeof isPrimaryRaw === "string" && (isPrimaryRaw === "true" || isPrimaryRaw === "1");
 
+    let parsedText: string;
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const parsedText = await extractResumeText(file.name, buffer);
-      const userId = c.get("clerkUserId");
-      const id = crypto.randomUUID();
-      const fallbackLabel = file.name.replace(/\.[^.]+$/, "") || "Uploaded resume";
-      const created = await store.create(userId, {
-        id,
-        parsedText,
-        label: label ?? fallbackLabel,
-        isPrimary,
-        storagePath: buildUploadStoragePath(userId, id, file.name),
-      });
-      return c.json(created, 201);
+      parsedText = await extractResumeText(filename, buffer);
     } catch (error) {
       if (error instanceof ResumeParseError) {
         return c.json({ error: error.message }, 400);
       }
       const message = error instanceof Error ? error.message : "Failed to parse resume";
       return c.json({ error: message }, 400);
+    }
+
+    try {
+      const userId = c.get("clerkUserId");
+      const id = crypto.randomUUID();
+      const fallbackLabel = filename.replace(/\.[^.]+$/, "") || "Uploaded resume";
+      const created = await store.create(userId, {
+        id,
+        parsedText,
+        label: label ?? fallbackLabel,
+        isPrimary,
+        storagePath: buildUploadStoragePath(userId, id, filename),
+      });
+      return c.json(created, 201);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save resume";
+      return c.json({ error: message }, 500);
     }
   });
 

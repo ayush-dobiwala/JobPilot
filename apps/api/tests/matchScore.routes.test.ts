@@ -86,6 +86,53 @@ describe("resumes routes", () => {
     expect(response.status).toBe(400);
   });
 
+  it("uploads a PDF and stores parsed text with label", async () => {
+    // Minimal PDF with extractable text (same fixture shape as local parse tests)
+    const pdf = Buffer.from(`%PDF-1.1
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 55 >>stream
+BT /F1 24 Tf 100 700 Td (Hello Resume Candidate) Tj ET
+endstream
+endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000266 00000 n 
+0000000371 00000 n 
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+444
+%%EOF`);
+    const form = new FormData();
+    form.append("file", new File([pdf], "ayush-resume.pdf", { type: "application/pdf" }));
+    form.append("label", "Frontend — React");
+    form.append("isPrimary", "true");
+
+    const response = await app().request("/api/resumes/upload", {
+      method: "POST",
+      body: form,
+    });
+    expect(response.status).toBe(201);
+    const created = (await response.json()) as {
+      label: string;
+      parsedText: string;
+      storagePath: string;
+    };
+    expect(created.label).toBe("Frontend — React");
+    expect(created.parsedText).toContain("Hello Resume Candidate");
+    expect(created.storagePath).toContain("upload/");
+
+    const listResponse = await app().request("/api/resumes");
+    const body = (await listResponse.json()) as { data: unknown[] };
+    expect(body.data).toHaveLength(1);
+  });
+
   it("renames and deletes a resume", async () => {
     const createResponse = await app().request("/api/resumes", {
       method: "POST",

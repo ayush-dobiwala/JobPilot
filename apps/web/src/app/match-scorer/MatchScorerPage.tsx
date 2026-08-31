@@ -61,6 +61,8 @@ export function MatchScorerPage() {
       setResumeText("");
       setPendingFile(null);
       setResumeLabel("");
+    } catch {
+      // error message is set in the hook and shown under Save
     } finally {
       setSavingResume(false);
     }
@@ -188,6 +190,12 @@ export function MatchScorerPage() {
               >
                 {savingResume ? "Saving…" : "Save resume"}
               </Button>
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <p className="text-xs text-muted-foreground">
+                Choosing a file alone does not save it — click <span className="font-medium">Save resume</span>{" "}
+                after the name and file (or pasted text) are set. Image-only PDFs won’t work; use a
+                text PDF or paste the text instead.
+              </p>
             </CardContent>
           </Card>
 
