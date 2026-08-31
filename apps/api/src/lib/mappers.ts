@@ -40,7 +40,7 @@ export function toResume(row: ResumeRow): Resume {
   return {
     id: row.id,
     userId: row.userId,
-    label: row.label,
+    label: row.label?.trim() ? row.label : "My resume",
     storagePath: row.storagePath,
     parsedText: row.parsedText,
     isPrimary: row.isPrimary,

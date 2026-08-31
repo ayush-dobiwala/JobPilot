@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import type { Resume } from "@jobpilot/shared-types";
 import type { Database } from "../db/client.js";
-import { resumes } from "../db/schema.js";
+import { matchScoreRuns, resumes } from "../db/schema.js";
 import { toResume } from "../lib/mappers.js";
 import { safeResumeFilename } from "../lib/resumeParse.js";
 
@@ -87,6 +87,17 @@ export function createResumesService(db: Database): ResumeStore {
     },
 
     async delete(userId, id) {
+      const existing = await this.getOwned(userId, id);
+      if (!existing) {
+        return false;
+      }
+
+      // Older resumes may be referenced by match history; clear links first so delete always works.
+      await db
+        .update(matchScoreRuns)
+        .set({ resumeId: null })
+        .where(and(eq(matchScoreRuns.userId, userId), eq(matchScoreRuns.resumeId, id)));
+
       const deleted = await db
         .delete(resumes)
         .where(and(eq(resumes.id, id), eq(resumes.userId, userId)))

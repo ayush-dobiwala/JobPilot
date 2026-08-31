@@ -106,7 +106,9 @@ describe("resumes routes", () => {
     const deleteResponse = await app().request(`/api/resumes/${created.id}`, {
       method: "DELETE",
     });
-    expect(deleteResponse.status).toBe(204);
+    expect(deleteResponse.status).toBe(200);
+    const deletedBody = (await deleteResponse.json()) as { ok: boolean };
+    expect(deletedBody.ok).toBe(true);
 
     const listResponse = await app().request("/api/resumes");
     const body = (await listResponse.json()) as { data: unknown[] };

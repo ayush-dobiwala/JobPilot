@@ -77,8 +77,14 @@ export function useMatchScorer() {
   const removeResume = useCallback(
     async (id: string) => {
       const token = await getToken();
-      await deleteResume(token, id);
-      setResumes((prev) => prev.filter((row) => row.id !== id));
+      try {
+        await deleteResume(token, id);
+        setResumes((prev) => prev.filter((row) => row.id !== id));
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not delete resume");
+        throw err;
+      }
     },
     [getToken],
   );

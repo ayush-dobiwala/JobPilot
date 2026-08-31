@@ -80,9 +80,13 @@ export function MatchScorerPage() {
         : "Delete this resume?",
     );
     if (!ok) return;
-    await removeResume(id);
-    if (selectedResumeId === id) {
-      setSelectedResumeId("");
+    try {
+      await removeResume(id);
+      if (selectedResumeId === id) {
+        setSelectedResumeId("");
+      }
+    } catch {
+      // error message is set in the hook
     }
   }
 

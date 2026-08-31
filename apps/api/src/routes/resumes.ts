@@ -129,11 +129,16 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
   });
 
   router.delete("/:id", async (c) => {
-    const ok = await store.delete(c.get("clerkUserId"), c.req.param("id"));
-    if (!ok) {
-      return c.json({ error: "Resume not found" }, 404);
+    try {
+      const ok = await store.delete(c.get("clerkUserId"), c.req.param("id"));
+      if (!ok) {
+        return c.json({ error: "Resume not found" }, 404);
+      }
+      return c.json({ ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete resume";
+      return c.json({ error: message }, 500);
     }
-    return c.body(null, 204);
   });
 
   return router;
