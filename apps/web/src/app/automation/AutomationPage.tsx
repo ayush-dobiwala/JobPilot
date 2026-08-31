@@ -60,8 +60,7 @@ export function AutomationPage() {
   const [formUrl, setFormUrl] = useState(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
 
   const selected = applications.find((app) => app.id === applicationId);
-  const canAddWishlist =
-    company.trim() !== "" && roleTitle.trim() !== "" && jobUrl.trim() !== "";
+  const canAddWishlist = company.trim() !== "" && roleTitle.trim() !== "" && jobUrl.trim() !== "";
 
   function onSelectApplication(id: string) {
     setApplicationId(id);
@@ -307,9 +306,12 @@ export function AutomationPage() {
                             </a>
                           </Button>
                         ) : null}
-                        <Button size="sm" disabled={busy} onClick={() => void onMarkApplied(run.id)}>
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          I submitted — mark Applied
+                        <Button
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => void onMarkApplied(run.id)}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />I submitted — mark Applied
                         </Button>
                       </>
                     ) : null}

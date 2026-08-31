@@ -244,7 +244,8 @@ export function createAutomationService(
         workerLogs = [
           {
             step: "worker_confirm",
-            message: "Worker confirm skipped — application already marked Applied from your review.",
+            message:
+              "Worker confirm skipped — application already marked Applied from your review.",
             timestamp: nowIso(),
           },
         ];
@@ -424,9 +425,7 @@ export async function processAutomationJob(
             },
           ],
         })
-        .where(
-          and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "running")),
-        );
+        .where(and(eq(automationRuns.id, job.runId), eq(automationRuns.status, "running")));
       return;
     }
 
@@ -437,18 +436,12 @@ export async function processAutomationJob(
       .where(eq(profiles.userId, job.userId))
       .limit(1);
     const [app] = job.applicationId
-      ? await db
-          .select()
-          .from(applications)
-          .where(eq(applications.id, job.applicationId))
-          .limit(1)
+      ? await db.select().from(applications).where(eq(applications.id, job.applicationId)).limit(1)
       : [undefined];
 
     const formUrl = absoluteWorkerUrl(
       workerBaseUrl,
-      job.formUrl ??
-        app?.jobUrl ??
-        `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`,
+      job.formUrl ?? app?.jobUrl ?? `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`,
     );
 
     const coverLetter =

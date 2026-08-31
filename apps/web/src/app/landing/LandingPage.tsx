@@ -153,10 +153,7 @@ export function LandingPage() {
             transition={{ delay: 0.12, duration: 0.5 }}
             className="relative"
           >
-            <div
-              className="absolute -inset-4 rounded-[2rem] bg-primary/20 blur-3xl"
-              aria-hidden
-            />
+            <div className="absolute -inset-4 rounded-[2rem] bg-primary/20 blur-3xl" aria-hidden />
             <div className="relative rounded-2xl border border-border/80 bg-card/90 p-5 shadow-2xl shadow-primary/20 backdrop-blur-md">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -257,7 +254,10 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="pricing" className="mt-24 rounded-3xl border border-border/80 bg-card/75 p-8 shadow-xl shadow-primary/10 backdrop-blur-md md:p-12">
+        <section
+          id="pricing"
+          className="mt-24 rounded-3xl border border-border/80 bg-card/75 p-8 shadow-xl shadow-primary/10 backdrop-blur-md md:p-12"
+        >
           <h2 className="font-display text-3xl font-semibold text-foreground">Simple pricing</h2>
           <p className="mt-2 max-w-xl text-muted-foreground">
             Start free. Upgrade only if you want unlimited resume match checks.
@@ -269,7 +269,10 @@ export function LandingPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p className="text-3xl font-semibold text-foreground">$0</p>
-                <p>Application board, 5 match checks each month, and form-fill help with your approval.</p>
+                <p>
+                  Application board, 5 match checks each month, and form-fill help with your
+                  approval.
+                </p>
               </CardContent>
             </Card>
             <Card className="border-primary/50 bg-background/60 shadow-lg shadow-primary/10">

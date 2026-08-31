@@ -152,8 +152,7 @@ export function createBillingService(options: {
         // Newer Stripe API versions put period dates on items, not the subscription root.
         const rootPeriodEnd = (subscription as { current_period_end?: number }).current_period_end;
         const itemPeriodEnd = subscription.items?.data?.[0] as
-          | { current_period_end?: number }
-          | undefined;
+          { current_period_end?: number } | undefined;
         const periodEndUnix = rootPeriodEnd ?? itemPeriodEnd?.current_period_end ?? 0;
 
         await options.db

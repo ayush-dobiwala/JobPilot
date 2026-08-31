@@ -46,8 +46,7 @@ export function MatchScorerPage() {
       ? "Unlimited scans (Pro)"
       : `${Math.max(0, (usage?.limit ?? 5) - (usage?.used ?? 0))} scans left this month`;
 
-  const canSave =
-    resumeLabel.trim() !== "" && (pendingFile !== null || resumeText.trim() !== "");
+  const canSave = resumeLabel.trim() !== "" && (pendingFile !== null || resumeText.trim() !== "");
 
   async function handleSaveResume() {
     if (!canSave) return;
@@ -101,9 +100,8 @@ export function MatchScorerPage() {
             Match Scorer
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Save different versions of your resume with clear names (for example “Backend —
-            APIs” or “DevOps — cloud”). When you score a job, pick the version that matches that
-            role.
+            Save different versions of your resume with clear names (for example “Backend — APIs” or
+            “DevOps — cloud”). When you score a job, pick the version that matches that role.
           </p>
         </div>
         {usage ? (
@@ -164,9 +162,7 @@ export function MatchScorerPage() {
                     }}
                   />
                   <span className="text-xs text-muted-foreground">
-                    {pendingFile
-                      ? pendingFile.name
-                      : "PDF or .docx · max 5 MB (not old .doc)"}
+                    {pendingFile ? pendingFile.name : "PDF or .docx · max 5 MB (not old .doc)"}
                   </span>
                 </div>
               </div>
@@ -192,9 +188,9 @@ export function MatchScorerPage() {
               </Button>
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
               <p className="text-xs text-muted-foreground">
-                Choosing a file alone does not save it — click <span className="font-medium">Save resume</span>{" "}
-                after the name and file (or pasted text) are set. Image-only PDFs won’t work; use a
-                text PDF or paste the text instead.
+                Choosing a file alone does not save it — click{" "}
+                <span className="font-medium">Save resume</span> after the name and file (or pasted
+                text) are set. Image-only PDFs won’t work; use a text PDF or paste the text instead.
               </p>
             </CardContent>
           </Card>
@@ -245,7 +241,9 @@ export function MatchScorerPage() {
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             Saved {new Date(resume.uploadedAt).toLocaleDateString()}
-                            {resume.storagePath.includes("upload/") ? " · from file" : " · from text"}
+                            {resume.storagePath.includes("upload/")
+                              ? " · from file"
+                              : " · from text"}
                           </p>
                         </button>
                         <div className="flex gap-1">
@@ -350,7 +348,8 @@ export function MatchScorerPage() {
               <>
                 {selectedResume ? (
                   <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                    Scored with <span className="font-medium text-foreground">{selectedResume.label}</span>
+                    Scored with{" "}
+                    <span className="font-medium text-foreground">{selectedResume.label}</span>
                   </p>
                 ) : null}
                 <div className="flex flex-col items-center gap-2">

@@ -37,7 +37,8 @@ export function getClerkAppearance(theme: Theme) {
     elements: {
       card: "shadow-lg border border-border",
       headerTitle: "font-display",
-      userButtonPopoverCard: "border border-border shadow-xl !bg-[hsl(var(--popover))] !text-[hsl(var(--popover-foreground))]",
+      userButtonPopoverCard:
+        "border border-border shadow-xl !bg-[hsl(var(--popover))] !text-[hsl(var(--popover-foreground))]",
       userButtonPopoverMain: "!bg-[hsl(var(--popover))] !text-[hsl(var(--popover-foreground))]",
       userButtonPopoverActionButton:
         "!text-[hsl(var(--foreground))] hover:!bg-[hsl(var(--secondary))]",
