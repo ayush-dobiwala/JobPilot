@@ -11,12 +11,19 @@ export class MemoryResumeStore implements ResumeStore {
 
   async create(
     userId: string,
-    input: { parsedText: string; isPrimary?: boolean; storagePath?: string; id?: string },
+    input: {
+      parsedText: string;
+      label?: string;
+      isPrimary?: boolean;
+      storagePath?: string;
+      id?: string;
+    },
   ): Promise<Resume> {
     const id = input.id ?? crypto.randomUUID();
     const resume: Resume = {
       id,
       userId,
+      label: input.label?.trim() || "My resume",
       storagePath: input.storagePath ?? `inline/${id}`,
       parsedText: input.parsedText,
       isPrimary: input.isPrimary ?? false,
@@ -24,6 +31,39 @@ export class MemoryResumeStore implements ResumeStore {
     };
     this.resumes.set(resume.id, resume);
     return resume;
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    input: { label?: string; isPrimary?: boolean },
+  ): Promise<Resume | null> {
+    const row = this.resumes.get(id);
+    if (!row || row.userId !== userId) {
+      return null;
+    }
+    if (input.isPrimary === true) {
+      for (const resume of this.resumes.values()) {
+        if (resume.userId === userId) {
+          resume.isPrimary = false;
+        }
+      }
+    }
+    const updated: Resume = {
+      ...row,
+      ...(input.label !== undefined ? { label: input.label.trim() || row.label } : {}),
+      ...(input.isPrimary !== undefined ? { isPrimary: input.isPrimary } : {}),
+    };
+    this.resumes.set(id, updated);
+    return updated;
+  }
+
+  async delete(userId: string, id: string): Promise<boolean> {
+    const row = this.resumes.get(id);
+    if (!row || row.userId !== userId) {
+      return false;
+    }
+    return this.resumes.delete(id);
   }
 
   async getOwned(userId: string, id: string): Promise<Resume | null> {
@@ -39,13 +79,8 @@ export class MemoryMatchScoreStore implements MatchScoreStore {
   used = 0;
   limit: number | null = 5;
   plan: "free" | "pro" = "free";
-  result: MatchScoreResponse = {
-    score: 77,
-    missingKeywords: ["kubernetes"],
-    suggestions: ["Add metrics to bullet points"],
-  };
 
-  async getUsage(_userId: string): Promise<MatchScoreUsageResponse> {
+  async getUsage(): Promise<MatchScoreUsageResponse> {
     return { used: this.used, limit: this.limit, plan: this.plan };
   }
 
@@ -55,6 +90,10 @@ export class MemoryMatchScoreStore implements MatchScoreStore {
     _jobDescription: string,
   ): Promise<MatchScoreResponse> {
     this.used += 1;
-    return this.result;
+    return {
+      score: 77,
+      missingKeywords: ["kubernetes"],
+      suggestions: ["Add a Kubernetes bullet"],
+    };
   }
 }

@@ -7,15 +7,28 @@ import { safeResumeFilename } from "../lib/resumeParse.js";
 
 export interface CreateResumeInput {
   parsedText: string;
+  label?: string;
   isPrimary?: boolean;
   storagePath?: string;
   id?: string;
 }
 
+export interface UpdateResumeInput {
+  label?: string;
+  isPrimary?: boolean;
+}
+
 export interface ResumeStore {
   list(userId: string): Promise<Resume[]>;
   create(userId: string, input: CreateResumeInput): Promise<Resume>;
+  update(userId: string, id: string, input: UpdateResumeInput): Promise<Resume | null>;
+  delete(userId: string, id: string): Promise<boolean>;
   getOwned(userId: string, id: string): Promise<Resume | null>;
+}
+
+function normalizeLabel(label: string | undefined, fallback: string): string {
+  const trimmed = label?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed.slice(0, 120) : fallback;
 }
 
 export function createResumesService(db: Database): ResumeStore {
@@ -40,6 +53,7 @@ export function createResumesService(db: Database): ResumeStore {
         .values({
           id,
           userId,
+          label: normalizeLabel(input.label, "My resume"),
           storagePath,
           parsedText: input.parsedText.trim(),
           isPrimary: input.isPrimary ?? false,
@@ -49,6 +63,35 @@ export function createResumesService(db: Database): ResumeStore {
         throw new Error("Failed to create resume");
       }
       return toResume(row);
+    },
+
+    async update(userId, id, input) {
+      const existing = await this.getOwned(userId, id);
+      if (!existing) {
+        return null;
+      }
+      if (input.isPrimary === true) {
+        await db.update(resumes).set({ isPrimary: false }).where(eq(resumes.userId, userId));
+      }
+      const [row] = await db
+        .update(resumes)
+        .set({
+          ...(input.label !== undefined
+            ? { label: normalizeLabel(input.label, existing.label) }
+            : {}),
+          ...(input.isPrimary !== undefined ? { isPrimary: input.isPrimary } : {}),
+        })
+        .where(and(eq(resumes.id, id), eq(resumes.userId, userId)))
+        .returning();
+      return row ? toResume(row) : null;
+    },
+
+    async delete(userId, id) {
+      const deleted = await db
+        .delete(resumes)
+        .where(and(eq(resumes.id, id), eq(resumes.userId, userId)))
+        .returning({ id: resumes.id });
+      return deleted.length > 0;
     },
 
     async getOwned(userId, id) {

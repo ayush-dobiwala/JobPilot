@@ -59,15 +59,22 @@ describe("resumes routes", () => {
     const createResponse = await app().request("/api/resumes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ parsedText: "Resume body", isPrimary: true }),
+      body: JSON.stringify({
+        parsedText: "Resume body",
+        label: "Backend — APIs",
+        isPrimary: true,
+      }),
     });
     expect(createResponse.status).toBe(201);
+    const created = (await createResponse.json()) as { label: string };
+    expect(created.label).toBe("Backend — APIs");
 
     const listResponse = await app().request("/api/resumes");
     expect(listResponse.status).toBe(200);
-    const body = (await listResponse.json()) as { data: { parsedText: string }[] };
+    const body = (await listResponse.json()) as { data: { parsedText: string; label: string }[] };
     expect(body.data).toHaveLength(1);
     expect(body.data[0]?.parsedText).toBe("Resume body");
+    expect(body.data[0]?.label).toBe("Backend — APIs");
   });
 
   it("rejects upload without a file", async () => {
@@ -77,5 +84,32 @@ describe("resumes routes", () => {
       body: form,
     });
     expect(response.status).toBe(400);
+  });
+
+  it("renames and deletes a resume", async () => {
+    const createResponse = await app().request("/api/resumes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ parsedText: "Body", label: "Old name" }),
+    });
+    const created = (await createResponse.json()) as { id: string };
+
+    const patchResponse = await app().request(`/api/resumes/${created.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ label: "DevOps — cloud" }),
+    });
+    expect(patchResponse.status).toBe(200);
+    const patched = (await patchResponse.json()) as { label: string };
+    expect(patched.label).toBe("DevOps — cloud");
+
+    const deleteResponse = await app().request(`/api/resumes/${created.id}`, {
+      method: "DELETE",
+    });
+    expect(deleteResponse.status).toBe(204);
+
+    const listResponse = await app().request("/api/resumes");
+    const body = (await listResponse.json()) as { data: unknown[] };
+    expect(body.data).toHaveLength(0);
   });
 });

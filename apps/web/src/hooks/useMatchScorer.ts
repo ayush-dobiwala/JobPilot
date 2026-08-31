@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "@/lib/applicationsApi";
 import {
   createResume,
+  deleteResume,
   fetchMatchScoreUsage,
   listResumes,
   runMatchScore,
+  updateResume,
   uploadResumeFile,
 } from "@/lib/matchScoreApi";
 
@@ -36,9 +38,13 @@ export function useMatchScorer() {
   }, [refresh]);
 
   const saveResume = useCallback(
-    async (parsedText: string) => {
+    async (parsedText: string, label: string) => {
       const token = await getToken();
-      const created = await createResume(token, { parsedText, isPrimary: resumes.length === 0 });
+      const created = await createResume(token, {
+        parsedText,
+        label,
+        isPrimary: resumes.length === 0,
+      });
       setResumes((prev) => [created, ...prev]);
       return created;
     },
@@ -46,13 +52,35 @@ export function useMatchScorer() {
   );
 
   const uploadResume = useCallback(
-    async (file: File) => {
+    async (file: File, label: string) => {
       const token = await getToken();
-      const created = await uploadResumeFile(token, file, resumes.length === 0);
+      const created = await uploadResumeFile(token, file, {
+        label,
+        isPrimary: resumes.length === 0,
+      });
       setResumes((prev) => [created, ...prev]);
       return created;
     },
     [getToken, resumes.length],
+  );
+
+  const renameResume = useCallback(
+    async (id: string, label: string) => {
+      const token = await getToken();
+      const updated = await updateResume(token, id, { label });
+      setResumes((prev) => prev.map((row) => (row.id === id ? updated : row)));
+      return updated;
+    },
+    [getToken],
+  );
+
+  const removeResume = useCallback(
+    async (id: string) => {
+      const token = await getToken();
+      await deleteResume(token, id);
+      setResumes((prev) => prev.filter((row) => row.id !== id));
+    },
+    [getToken],
   );
 
   const analyze = useCallback(
@@ -87,6 +115,8 @@ export function useMatchScorer() {
     error,
     saveResume,
     uploadResume,
+    renameResume,
+    removeResume,
     analyze,
     refresh,
   };

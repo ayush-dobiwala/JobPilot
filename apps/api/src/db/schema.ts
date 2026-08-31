@@ -83,6 +83,8 @@ export const resumes = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /** Friendly name so users pick the right version for a role (e.g. "DevOps — cloud focus"). */
+    label: text("label").notNull().default("My resume"),
     storagePath: text("storage_path").notNull(),
     parsedText: text("parsed_text"),
     isPrimary: boolean("is_primary").notNull().default(false),

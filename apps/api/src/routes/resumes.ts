@@ -3,7 +3,9 @@ import { extractResumeText, ResumeParseError } from "../lib/resumeParse.js";
 import { buildUploadStoragePath, type ResumeStore } from "../services/resumes.js";
 import type { AppEnv } from "../types.js";
 
-function parseCreateBody(body: unknown): { parsedText: string; isPrimary?: boolean } | null {
+function parseCreateBody(
+  body: unknown,
+): { parsedText: string; label?: string; isPrimary?: boolean } | null {
   if (typeof body !== "object" || body === null) {
     return null;
   }
@@ -11,11 +13,32 @@ function parseCreateBody(body: unknown): { parsedText: string; isPrimary?: boole
   if (typeof record.parsedText !== "string" || record.parsedText.trim() === "") {
     return null;
   }
-  const result: { parsedText: string; isPrimary?: boolean } = {
+  const result: { parsedText: string; label?: string; isPrimary?: boolean } = {
     parsedText: record.parsedText.trim(),
   };
+  if (typeof record.label === "string" && record.label.trim() !== "") {
+    result.label = record.label.trim();
+  }
   if (typeof record.isPrimary === "boolean") {
     result.isPrimary = record.isPrimary;
+  }
+  return result;
+}
+
+function parseUpdateBody(body: unknown): { label?: string; isPrimary?: boolean } | null {
+  if (typeof body !== "object" || body === null) {
+    return null;
+  }
+  const record = body as Record<string, unknown>;
+  const result: { label?: string; isPrimary?: boolean } = {};
+  if (typeof record.label === "string") {
+    result.label = record.label.trim();
+  }
+  if (typeof record.isPrimary === "boolean") {
+    result.isPrimary = record.isPrimary;
+  }
+  if (result.label === undefined && result.isPrimary === undefined) {
+    return null;
   }
   return result;
 }
@@ -56,6 +79,10 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
       return c.json({ error: "file is required (PDF or Word .docx)" }, 400);
     }
 
+    const labelRaw = form.get("label");
+    const label =
+      typeof labelRaw === "string" && labelRaw.trim() !== "" ? labelRaw.trim() : undefined;
+
     const isPrimaryRaw = form.get("isPrimary");
     const isPrimary =
       typeof isPrimaryRaw === "string" && (isPrimaryRaw === "true" || isPrimaryRaw === "1");
@@ -65,9 +92,11 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
       const parsedText = await extractResumeText(file.name, buffer);
       const userId = c.get("clerkUserId");
       const id = crypto.randomUUID();
+      const fallbackLabel = file.name.replace(/\.[^.]+$/, "") || "Uploaded resume";
       const created = await store.create(userId, {
         id,
         parsedText,
+        label: label ?? fallbackLabel,
         isPrimary,
         storagePath: buildUploadStoragePath(userId, id, file.name),
       });
@@ -79,6 +108,32 @@ export function createResumesRouter(store: ResumeStore): Hono<AppEnv> {
       const message = error instanceof Error ? error.message : "Failed to parse resume";
       return c.json({ error: message }, 400);
     }
+  });
+
+  router.patch("/:id", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+    const parsed = parseUpdateBody(body);
+    if (!parsed) {
+      return c.json({ error: "label or isPrimary is required" }, 400);
+    }
+    const updated = await store.update(c.get("clerkUserId"), c.req.param("id"), parsed);
+    if (!updated) {
+      return c.json({ error: "Resume not found" }, 404);
+    }
+    return c.json(updated);
+  });
+
+  router.delete("/:id", async (c) => {
+    const ok = await store.delete(c.get("clerkUserId"), c.req.param("id"));
+    if (!ok) {
+      return c.json({ error: "Resume not found" }, 404);
+    }
+    return c.body(null, 204);
   });
 
   return router;

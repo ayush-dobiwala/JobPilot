@@ -52,6 +52,7 @@ export type {
   ScrapeJobRequest,
   UpdateApplicationRequest,
   UpdateProfileRequest,
+  UpdateResumeRequest,
 } from "./api.js";
 
 export {

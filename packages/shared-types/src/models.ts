@@ -29,6 +29,7 @@ export interface Profile {
 export interface Resume {
   id: string;
   userId: string;
+  label: string;
   storagePath: string;
   parsedText: string | null;
   isPrimary: boolean;

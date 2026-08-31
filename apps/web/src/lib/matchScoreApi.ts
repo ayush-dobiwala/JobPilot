@@ -4,6 +4,7 @@ import type {
   MatchScoreResponse,
   MatchScoreUsageResponse,
   Resume,
+  UpdateResumeRequest,
 } from "@jobpilot/shared-types";
 import { apiFetch } from "./api.js";
 import { ApiError } from "./applicationsApi.js";
@@ -18,6 +19,9 @@ async function parseJson<T>(response: Response): Promise<T> {
       // ignore
     }
     throw new ApiError(message, response.status);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return (await response.json()) as T;
 }
@@ -58,14 +62,36 @@ export async function createResume(
 export async function uploadResumeFile(
   token: string | null,
   file: File,
-  isPrimary = false,
+  options: { label?: string; isPrimary?: boolean } = {},
 ): Promise<Resume> {
   const form = new FormData();
   form.append("file", file);
-  form.append("isPrimary", isPrimary ? "true" : "false");
+  if (options.label?.trim()) {
+    form.append("label", options.label.trim());
+  }
+  form.append("isPrimary", options.isPrimary ? "true" : "false");
   const response = await apiFetch("/api/resumes/upload", token, {
     method: "POST",
     body: form,
   });
   return parseJson<Resume>(response);
+}
+
+export async function updateResume(
+  token: string | null,
+  id: string,
+  body: UpdateResumeRequest,
+): Promise<Resume> {
+  const response = await apiFetch(`/api/resumes/${id}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  return parseJson<Resume>(response);
+}
+
+export async function deleteResume(token: string | null, id: string): Promise<void> {
+  const response = await apiFetch(`/api/resumes/${id}`, token, {
+    method: "DELETE",
+  });
+  await parseJson<void>(response);
 }

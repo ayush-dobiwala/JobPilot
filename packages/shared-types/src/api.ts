@@ -99,6 +99,12 @@ export interface ListAutomationRunsResponse {
 
 export interface CreateResumeRequest {
   parsedText: string;
+  label?: string;
+  isPrimary?: boolean;
+}
+
+export interface UpdateResumeRequest {
+  label?: string;
   isPrimary?: boolean;
 }
 
