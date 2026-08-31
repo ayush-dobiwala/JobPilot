@@ -28,30 +28,19 @@ APPLICANT = {
 
 
 def test_autofill_endpoint_with_mocked_driver(demo_apply_file_url: str) -> None:
-    mock_driver = MagicMock()
-    mock_driver.get_screenshot_as_png.return_value = b"fake-png"
-
-    with patch("app.services.autofill_service.create_driver", return_value=mock_driver):
-        with patch("app.autofill.demo.WebDriverWait") as mock_wait_cls:
-            mock_wait = mock_wait_cls.return_value
-            mock_element = MagicMock()
-            mock_wait.until.return_value = mock_element
-            with patch("app.autofill.demo.Select"):
-                response = client.post(
-                    "/autofill",
-                    json={"formUrl": demo_apply_file_url, "applicant": APPLICANT},
-                )
+    # Demo forms use the instant fast path (no Chrome) unless DEMO_AUTOFILL_USE_BROWSER is set.
+    response = client.post(
+        "/autofill",
+        json={"formUrl": demo_apply_file_url, "applicant": APPLICANT},
+    )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["screenshotBase64"]
     assert body["reviewUrl"]
+    assert "autosubmit=1" in body["reviewUrl"]
     assert body["filledFields"]["email"] == "jane@example.com"
+    assert any(log["step"] == "fast_path" for log in body["logs"])
     assert any(log["step"] == "stop" for log in body["logs"])
-    assert mock_driver.get.call_count == 1
-    opened = mock_driver.get.call_args.args[0]
-    assert opened.startswith(demo_apply_file_url)
-    mock_driver.quit.assert_called_once()
 
 
 def test_confirm_submit_skips_non_demo_url() -> None:

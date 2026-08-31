@@ -5,6 +5,7 @@ import type {
   CheckoutSessionResponse,
   FunnelCounts,
   PortalSessionResponse,
+  PrepareDemoResponse,
   Profile,
   QueueJobResponse,
   ScrapeJobRequest,
@@ -97,16 +98,45 @@ export async function clearFinishedAutomationRuns(token: string): Promise<number
 export async function enqueueAutofill(
   token: string,
   body: AutofillJobRequest,
-): Promise<QueueJobResponse> {
+): Promise<QueueJobResponse | PrepareDemoResponse> {
   const response = await apiFetch("/api/automation/autofill", token, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error("Failed to queue autofill");
+    let message = "Failed to prepare form";
+    try {
+      const errBody = (await response.json()) as { error?: string };
+      if (errBody.error) message = errBody.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
   }
-  return (await response.json()) as QueueJobResponse;
+  return (await response.json()) as QueueJobResponse | PrepareDemoResponse;
+}
+
+export async function prepareDemoAutofill(
+  token: string,
+  body: AutofillJobRequest,
+): Promise<PrepareDemoResponse> {
+  const response = await apiFetch("/api/automation/prepare-demo", token, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let message = "Failed to prepare demo form";
+    try {
+      const errBody = (await response.json()) as { error?: string };
+      if (errBody.error) message = errBody.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+  return (await response.json()) as PrepareDemoResponse;
 }
 
 export async function confirmSubmit(token: string, runId: string): Promise<AutomationRun> {

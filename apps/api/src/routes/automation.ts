@@ -127,12 +127,63 @@ export function createAutomationRouter(store: AutomationStore): Hono<AppEnv> {
     if (typeof record.applicationId !== "string" || typeof record.formUrl !== "string") {
       return c.json({ error: "applicationId and formUrl are required" }, 400);
     }
+    const input = {
+      applicationId: record.applicationId,
+      formUrl: record.formUrl,
+      ...(typeof record.resumeId === "string" ? { resumeId: record.resumeId } : {}),
+      ...(typeof record.autoSubmit === "boolean" ? { autoSubmit: record.autoSubmit } : {}),
+    };
+
+    const isDemo =
+      input.formUrl.includes("demo-apply") ||
+      input.formUrl.includes("demo_apply") ||
+      input.formUrl.includes("/fixtures/");
+
     try {
-      const result = await store.enqueueAutofill(c.get("clerkUserId"), {
-        applicationId: record.applicationId,
-        formUrl: record.formUrl,
-      });
+      // Demo ATS: instant prepare (no queue / no Selenium). Real sites stay queued.
+      if (isDemo) {
+        const result = await store.prepareDemo(c.get("clerkUserId"), {
+          ...input,
+          autoSubmit: input.autoSubmit ?? true,
+        });
+        return c.json(result, 201);
+      }
+      const result = await store.enqueueAutofill(c.get("clerkUserId"), input);
       return c.json(result, 202);
+    } catch (error) {
+      if (error instanceof ApplicationNotFoundError) {
+        return c.json({ error: error.message }, 404);
+      }
+      throw error;
+    }
+  });
+
+  router.post("/prepare-demo", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+    if (typeof body !== "object" || body === null) {
+      return c.json({ error: "Invalid body" }, 400);
+    }
+    const record = body as Record<string, unknown>;
+    if (typeof record.applicationId !== "string") {
+      return c.json({ error: "applicationId is required" }, 400);
+    }
+    const formUrl =
+      typeof record.formUrl === "string" && record.formUrl.trim() !== ""
+        ? record.formUrl.trim()
+        : "demo-apply";
+    try {
+      const result = await store.prepareDemo(c.get("clerkUserId"), {
+        applicationId: record.applicationId,
+        formUrl,
+        ...(typeof record.resumeId === "string" ? { resumeId: record.resumeId } : {}),
+        autoSubmit: typeof record.autoSubmit === "boolean" ? record.autoSubmit : true,
+      });
+      return c.json(result, 201);
     } catch (error) {
       if (error instanceof ApplicationNotFoundError) {
         return c.json({ error: error.message }, 404);

@@ -1,14 +1,18 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useCallback, useEffect, useState } from "react";
-import type { AutomationRun, WishlistFromUrlResponse } from "@jobpilot/shared-types";
+import type {
+  AutomationRun,
+  PrepareDemoResponse,
+  WishlistFromUrlResponse,
+} from "@jobpilot/shared-types";
 import {
   cancelAutomationRun,
   clearFinishedAutomationRuns,
   confirmSubmit,
   deleteAutomationRun,
-  enqueueAutofill,
   fetchAutomationRuns,
   importWishlistFromUrl,
+  prepareDemoAutofill,
 } from "@/lib/platformApi";
 
 const WORKER_URL =
@@ -41,7 +45,6 @@ export function useAutomation() {
   }, [getToken]);
 
   useEffect(() => {
-    // Wake the worker early so the first Wishlist save is faster on free hosts.
     void fetch(`${WORKER_URL}/health`).catch(() => undefined);
   }, []);
 
@@ -80,7 +83,12 @@ export function useAutomation() {
     }
   }
 
-  async function startAutofill(applicationId: string, formUrl: string) {
+  async function prepareDemo(options: {
+    applicationId: string;
+    formUrl: string;
+    resumeId?: string;
+    autoSubmit?: boolean;
+  }): Promise<PrepareDemoResponse> {
     setBusy(true);
     setError(null);
     try {
@@ -88,10 +96,16 @@ export function useAutomation() {
       if (!token) {
         throw new Error("Not signed in");
       }
-      await enqueueAutofill(token, { applicationId, formUrl });
+      const result = await prepareDemoAutofill(token, {
+        applicationId: options.applicationId,
+        formUrl: options.formUrl,
+        ...(options.resumeId ? { resumeId: options.resumeId } : {}),
+        autoSubmit: options.autoSubmit ?? true,
+      });
       await refresh();
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start form prepare");
+      setError(err instanceof Error ? err.message : "Could not prepare demo form");
       throw err;
     } finally {
       setBusy(false);
@@ -176,7 +190,7 @@ export function useAutomation() {
     error,
     busy,
     saveJobFromUrl,
-    startAutofill,
+    prepareDemo,
     confirm,
     cancel,
     remove,

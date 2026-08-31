@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
+import type { Resume } from "@jobpilot/shared-types";
 import { BookmarkPlus, CheckCircle2, ExternalLink, Square, Trash2, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApplications } from "@/hooks/useApplications";
 import { useAutomation } from "@/hooks/useAutomation";
+import { listResumes } from "@/lib/matchScoreApi";
 
 const DEFAULT_WORKER =
   import.meta.env.VITE_WORKER_URL?.replace(/\/$/, "") ||
@@ -51,13 +54,14 @@ function isFinishedStatus(status: string): boolean {
 }
 
 export function AutomationPage() {
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const {
     runs,
     loading,
     error,
     busy,
     saveJobFromUrl,
-    startAutofill,
+    prepareDemo,
     confirm,
     cancel,
     remove,
@@ -68,6 +72,10 @@ export function AutomationPage() {
   const [jobUrl, setJobUrl] = useState("");
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [savingWishlist, setSavingWishlist] = useState(false);
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [resumeId, setResumeId] = useState("");
+  const [prepareError, setPrepareError] = useState<string | null>(null);
+  const [lastReviewUrl, setLastReviewUrl] = useState<string | null>(null);
 
   function demoFormUrl(company?: string, role?: string) {
     const url = new URL(`${DEFAULT_WORKER}/fixtures/demo-apply.html`);
@@ -82,6 +90,21 @@ export function AutomationPage() {
   const selected = applications.find((app) => app.id === applicationId);
   const canAddWishlist = /^https?:\/\//i.test(jobUrl.trim());
   const finishedCount = runs.filter((run) => isFinishedStatus(run.status)).length;
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    void (async () => {
+      try {
+        const token = await getToken();
+        const rows = await listResumes(token);
+        setResumes(rows);
+        const primary = rows.find((row) => row.isPrimary) ?? rows[0];
+        if (primary) setResumeId(primary.id);
+      } catch {
+        // resume list is optional until Match Scorer has uploads
+      }
+    })();
+  }, [getToken, isLoaded, isSignedIn]);
 
   useEffect(() => {
     if (!applicationId) return;
@@ -113,6 +136,25 @@ export function AutomationPage() {
       setWishlistError(err instanceof Error ? err.message : "Could not add to Wishlist");
     } finally {
       setSavingWishlist(false);
+    }
+  }
+
+  async function onPrepareDemo() {
+    if (!applicationId) return;
+    setPrepareError(null);
+    setLastReviewUrl(null);
+    try {
+      const result = await prepareDemo({
+        applicationId,
+        formUrl: formUrl.trim(),
+        ...(resumeId ? { resumeId } : {}),
+        autoSubmit: true,
+      });
+      setLastReviewUrl(result.reviewUrl);
+      await refreshApps();
+      window.open(result.reviewUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setPrepareError(err instanceof Error ? err.message : "Could not prepare demo form");
     }
   }
 
@@ -210,12 +252,12 @@ export function AutomationPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-primary" />
-              Prepare application
+              Prepare &amp; submit demo
             </CardTitle>
             <CardDescription>
-              Opens JobPilot’s professional demo ATS, fills your profile + resume, screenshots the
-              result, then lets you open the same filled form in your browser. Complete Settings and
-              upload a resume first for the best demo.
+              Instant demo (no browser wait): pick a board card + resume, we fill the Meridian ATS,
+              attach that resume name, auto-submit the fake form, and move the card to Applied. Open
+              the review link to watch it happen.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -236,25 +278,62 @@ export function AutomationPage() {
               </select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="resumeId">Resume to attach</Label>
+              <select
+                id="resumeId"
+                className="flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground"
+                value={resumeId}
+                onChange={(e) => setResumeId(e.target.value)}
+              >
+                <option value="">Select a resume</option>
+                {resumes.map((resume) => (
+                  <option key={resume.id} value={resume.id}>
+                    {resume.label}
+                    {resume.isPrimary ? " (primary)" : ""}
+                  </option>
+                ))}
+              </select>
+              {resumes.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No resumes yet — upload one in{" "}
+                  <Link
+                    to="/match-scorer"
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    Match Scorer
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  This version is attached on the demo form (by name) and noted in the cover letter.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="formUrl">Demo ATS form URL</Label>
               <Input id="formUrl" value={formUrl} onChange={(e) => setFormUrl(e.target.value)} />
               {selected ? (
                 <p className="text-xs text-muted-foreground">
-                  Demo form for {selected.company} · {selected.roleTitle}. Real employer sites are
-                  not auto-filled — this is the interview-ready walkthrough.
+                  Demo for {selected.company} · {selected.roleTitle}
                 </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Keep the JobPilot demo form URL for reliable autofill + screenshot.
-                </p>
-              )}
+              ) : null}
             </div>
             <Button
               disabled={busy || !applicationId || !formUrl.trim()}
-              onClick={() => void startAutofill(applicationId, formUrl.trim())}
+              onClick={() => void onPrepareDemo()}
             >
-              Prepare form (autofill)
+              {busy ? "Preparing…" : "Fill, attach resume & submit demo"}
             </Button>
+            {prepareError ? <p className="text-sm text-destructive">{prepareError}</p> : null}
+            {lastReviewUrl ? (
+              <Button asChild size="sm" variant="outline">
+                <a href={lastReviewUrl} target="_blank" rel="noreferrer">
+                  Open filled demo form
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       </div>

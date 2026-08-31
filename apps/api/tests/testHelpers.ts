@@ -131,6 +131,31 @@ class MemoryAutomationStore implements AutomationStore {
     };
   }
 
+  async prepareDemo(
+    userId: string,
+    input: { applicationId: string; formUrl: string; resumeId?: string; autoSubmit?: boolean },
+  ) {
+    const runId = crypto.randomUUID();
+    this.runs.set(runId, {
+      id: runId,
+      userId,
+      applicationId: input.applicationId,
+      type: "autofill",
+      status: "success",
+      logs: [],
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+    });
+    return {
+      runId,
+      applicationId: input.applicationId,
+      reviewUrl: `${input.formUrl}?autosubmit=1`,
+      filledFields: { email: "demo@example.com" },
+      missingFields: [] as string[],
+      submitted: input.autoSubmit !== false,
+    };
+  }
+
   async deleteRun(userId: string, runId: string) {
     const run = await this.getRun(userId, runId);
     if (!run) return false;

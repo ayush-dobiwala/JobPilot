@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import os
 from collections.abc import Callable
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -109,8 +110,7 @@ def run_autofill(
     *,
     driver_factory: Callable[[], WebDriver] | None = None,
 ) -> AutofillResponse:
-    """Fill a form with Selenium, capture a screenshot, and stop before submit."""
-    factory = driver_factory or create_driver
+    """Fill a form. Demo ATS uses an instant URL prefill path (no Chrome) by default."""
     logs: list[LogEntry] = [
         LogEntry(step="start", message=f"Autofill started for {request.formUrl}")
     ]
@@ -123,8 +123,6 @@ def run_autofill(
             )
         )
 
-    driver = factory()
-    screenshot: str | None = None
     filled_fields = _applicant_fields(request.applicant)
     review_url = build_review_url(
         request.formUrl,
@@ -132,9 +130,52 @@ def run_autofill(
         company=request.company,
         role=request.roleTitle,
     )
+    # Append autosubmit for demo interview walkthroughs.
+    if _is_demo_form_url(request.formUrl):
+        parts = urlsplit(review_url)
+        query = dict(parse_qsl(parts.query, keep_blank_values=True))
+        query["autosubmit"] = "1"
+        review_url = urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+        )
+
+    use_browser = os.environ.get("DEMO_AUTOFILL_USE_BROWSER", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if _is_demo_form_url(request.formUrl) and not use_browser:
+        logs.append(
+            LogEntry(
+                step="fast_path",
+                message="Demo ATS prepared instantly without launching Chrome.",
+            )
+        )
+        if request.applicant.resumeFileName:
+            logs.append(
+                LogEntry(
+                    step="fill",
+                    message=f"Attached resume label: {request.applicant.resumeFileName}",
+                )
+            )
+        logs.append(
+            LogEntry(
+                step="stop",
+                message="Open the review URL — fields are pre-filled and demo submit runs automatically.",
+            )
+        )
+        return AutofillResponse(
+            logs=logs,
+            screenshotBase64=None,
+            filledFields=filled_fields,
+            reviewUrl=review_url,
+            missingFields=missing,
+        )
+
+    factory = driver_factory or create_driver
+    driver = factory()
+    screenshot: str | None = None
     try:
-        # Load the review URL so the form already shows query-param fills,
-        # then Selenium completes file upload + any remaining controls.
         driver.get(review_url if _is_demo_form_url(request.formUrl) else request.formUrl)
         filler = resolve_filler(request.formUrl)
         logs.append(
@@ -142,7 +183,6 @@ def run_autofill(
         )
         fill_logs = filler.fill(driver, request.applicant)
         logs.extend(fill_logs)
-        # Scroll to top for a clean interview screenshot of the filled form.
         driver.execute_script("window.scrollTo(0, 0);")
         screenshot = _capture_screenshot(driver)
         logs.append(LogEntry(step="screenshot", message="Captured filled-form screenshot."))

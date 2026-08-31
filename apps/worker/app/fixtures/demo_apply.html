@@ -549,6 +549,12 @@
           var label = document.getElementById("resume_filename");
           label.textContent = file ? "Attached: " + file.name : "";
         });
+
+        if (params.get("autosubmit") === "1") {
+          window.setTimeout(function () {
+            document.getElementById("application-form").requestSubmit();
+          }, 700);
+        }
       })();
 
       document.getElementById("application-form").addEventListener("submit", function (e) {

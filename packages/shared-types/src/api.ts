@@ -64,6 +64,17 @@ export interface ScrapeJobRequest {
 export interface AutofillJobRequest {
   applicationId: string;
   formUrl: string;
+  resumeId?: string;
+  autoSubmit?: boolean;
+}
+
+export interface PrepareDemoResponse {
+  runId: string;
+  applicationId: string;
+  reviewUrl: string;
+  filledFields: Record<string, string>;
+  missingFields: string[];
+  submitted: boolean;
 }
 
 export interface QueueJobResponse {

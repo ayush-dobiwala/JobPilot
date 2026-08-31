@@ -48,6 +48,7 @@ export type {
   MatchScoreUsageResponse,
   PaginatedResponse,
   PortalSessionResponse,
+  PrepareDemoResponse,
   QueueJobResponse,
   ScrapeJobRequest,
   WishlistFromUrlResponse,

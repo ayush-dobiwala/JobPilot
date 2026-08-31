@@ -16,6 +16,12 @@ import {
   scrapedJobs,
   users,
 } from "../db/schema.js";
+import {
+  buildDemoReviewUrl,
+  demoApplicantFields,
+  demoMissingFields,
+  type DemoApplicant,
+} from "../lib/demoAutofill.js";
 import { toAutomationRun } from "../lib/mappers.js";
 import type { JobQueue } from "../queue/types.js";
 
@@ -53,6 +59,17 @@ export interface AutomationStore {
     company: string;
     roleTitle: string;
     jobUrl: string;
+  }>;
+  prepareDemo(
+    userId: string,
+    input: AutofillJobRequest,
+  ): Promise<{
+    runId: string;
+    applicationId: string;
+    reviewUrl: string;
+    filledFields: Record<string, string>;
+    missingFields: string[];
+    submitted: boolean;
   }>;
   enqueueAutofill(userId: string, input: AutofillJobRequest): Promise<QueueJobResponse>;
   confirmSubmit(userId: string, runId: string): Promise<AutomationRun>;
@@ -283,6 +300,200 @@ export function createAutomationService(
           .where(eq(automationRuns.id, run.id));
         throw error;
       }
+    },
+
+    async prepareDemo(userId, input) {
+      const [app] = await db
+        .select()
+        .from(applications)
+        .where(and(eq(applications.id, input.applicationId), eq(applications.userId, userId)))
+        .limit(1);
+      if (!app) {
+        throw new ApplicationNotFoundError();
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const [profile] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.userId, userId))
+        .limit(1);
+
+      let resume =
+        input.resumeId != null
+          ? (
+              await db
+                .select()
+                .from(resumes)
+                .where(and(eq(resumes.id, input.resumeId), eq(resumes.userId, userId)))
+                .limit(1)
+            )[0]
+          : undefined;
+      if (!resume) {
+        const [primary] = await db
+          .select()
+          .from(resumes)
+          .where(and(eq(resumes.userId, userId), eq(resumes.isPrimary, true)))
+          .limit(1);
+        resume = primary;
+      }
+      if (!resume) {
+        const [any] = await db.select().from(resumes).where(eq(resumes.userId, userId)).limit(1);
+        resume = any;
+      }
+
+      const portfolio = profile?.portfolioUrl ?? null;
+      const github = portfolio && /github\.com/i.test(portfolio) ? portfolio : null;
+      const autoSubmit = input.autoSubmit !== false;
+
+      const applicant: DemoApplicant = {
+        name: user?.name?.trim() || "",
+        email: user?.email?.trim() || "",
+        phone: profile?.phone ?? null,
+        location: profile?.location ?? null,
+        linkedinUrl: profile?.linkedinUrl ?? null,
+        portfolioUrl: portfolio,
+        githubUrl: github,
+        websiteUrl: portfolio && !github ? portfolio : null,
+        workAuthStatus: profile?.workAuthStatus ?? null,
+        coverLetter: `Hello ${app.company} hiring team,\n\nI'm excited to apply for the ${app.roleTitle} role. My background aligns with what you're looking for, and I'd welcome the chance to contribute.\n\nThank you for considering my application.\n\nPrepared with JobPilot.`,
+        currentTitle: `Applicant for ${app.roleTitle}`,
+        yearsExperience: "1-3",
+        relocation: "hybrid",
+        additionalInfo: resume
+          ? `Resume selected in JobPilot: ${resume.label}`
+          : "No resume selected — add one in Match Scorer.",
+        resumeFileName: resume
+          ? `${resume.label.replace(/[^\w.\- ]+/g, "").trim() || "resume"}.pdf`
+          : null,
+      };
+
+      const demoBase = `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`;
+      const formUrl =
+        input.formUrl.includes("demo-apply") || input.formUrl.includes("demo_apply")
+          ? input.formUrl.split("?")[0] || demoBase
+          : demoBase;
+
+      const filledFields = demoApplicantFields(applicant);
+      const missingFields = demoMissingFields(applicant);
+      const reviewUrl = buildDemoReviewUrl({
+        formUrl,
+        applicant,
+        company: app.company,
+        roleTitle: app.roleTitle,
+        autoSubmit,
+      });
+
+      const startedAt = new Date();
+      const logs: AutomationLogEntry[] = [
+        {
+          step: "fast_path",
+          message: "Demo ATS prepared instantly (no browser wait).",
+          timestamp: startedAt.toISOString(),
+        },
+        {
+          step: "form_url",
+          message: `Form URL: ${formUrl}`,
+          timestamp: nowIso(),
+        },
+        {
+          step: "review_url",
+          message: `Review URL: ${reviewUrl}`,
+          timestamp: nowIso(),
+        },
+        {
+          step: "resume",
+          message: resume
+            ? `Attached resume: ${resume.label}`
+            : "No resume on file — form still opens, but upload is empty.",
+          timestamp: nowIso(),
+        },
+        {
+          step: "filled_fields",
+          message: JSON.stringify(filledFields),
+          timestamp: nowIso(),
+        },
+      ];
+      if (missingFields.length > 0) {
+        logs.push({
+          step: "profile_gaps",
+          message: `Complete in Settings / Match Scorer: ${missingFields.join(", ")}`,
+          timestamp: nowIso(),
+        });
+      }
+
+      if (autoSubmit) {
+        const previousStatus = app.status;
+        await db
+          .update(applications)
+          .set({
+            status: "applied",
+            appliedAt: new Date(),
+            source: "automation",
+          })
+          .where(eq(applications.id, app.id));
+        if (previousStatus !== "applied") {
+          await db.insert(applicationEvents).values({
+            applicationId: app.id,
+            eventType: "status_change",
+            payload: {
+              from: previousStatus,
+              to: "applied",
+              via: "demo_auto_submit",
+              company: app.company,
+              roleTitle: app.roleTitle,
+              resumeId: resume?.id ?? null,
+              resumeLabel: resume?.label ?? null,
+            },
+          });
+        }
+        logs.push(
+          {
+            step: "demo_submit",
+            message:
+              "Demo form auto-submit armed — open the review link to watch fields fill and the application submit.",
+            timestamp: nowIso(),
+          },
+          {
+            step: "marked_applied",
+            message: `Moved ${app.company} — ${app.roleTitle} to Applied on your board.`,
+            timestamp: nowIso(),
+          },
+        );
+      } else {
+        logs.push({
+          step: "awaiting_confirm",
+          message:
+            "Open the review link, submit yourself on the demo form, then mark Applied here.",
+          timestamp: nowIso(),
+        });
+      }
+
+      const [run] = await db
+        .insert(automationRuns)
+        .values({
+          userId,
+          applicationId: app.id,
+          type: "autofill",
+          status: "success",
+          startedAt,
+          finishedAt: new Date(),
+          logs,
+        })
+        .returning();
+
+      if (!run) {
+        throw new Error("Failed to create demo prepare run");
+      }
+
+      return {
+        runId: run.id,
+        applicationId: app.id,
+        reviewUrl,
+        filledFields,
+        missingFields,
+        submitted: autoSubmit,
+      };
     },
 
     async enqueueAutofill(userId, input) {
