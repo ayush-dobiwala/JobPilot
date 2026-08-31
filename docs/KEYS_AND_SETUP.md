@@ -127,7 +127,7 @@ WORKER_INTERNAL_URL=http://localhost:8000
 
 1. Product catalog → **Products** → **Add product**
 2. Name: `JobPilot Pro`
-3. Pricing: **Recurring**, **$9.00 / month** (or your choice)
+3. Pricing: **Recurring**, **$15.00 / month** (or your choice)
 4. Save → copy the **Price ID** (`price_...`) → `STRIPE_PRICE_ID_PRO`
 
 ### Webhook (local with Stripe CLI)

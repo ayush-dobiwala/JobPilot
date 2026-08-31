@@ -149,15 +149,20 @@ export function createBillingService(options: {
             ? "canceled"
             : (subscription.status as typeof row.status);
 
+        // Newer Stripe API versions put period dates on items, not the subscription root.
+        const rootPeriodEnd = (subscription as { current_period_end?: number }).current_period_end;
+        const itemPeriodEnd = subscription.items?.data?.[0] as
+          | { current_period_end?: number }
+          | undefined;
+        const periodEndUnix = rootPeriodEnd ?? itemPeriodEnd?.current_period_end ?? 0;
+
         await options.db
           .update(subscriptions)
           .set({
             stripeSubscriptionId: subscription.id,
             plan,
             status,
-            currentPeriodEnd: new Date(
-              ((subscription as { current_period_end?: number }).current_period_end ?? 0) * 1000,
-            ),
+            currentPeriodEnd: periodEndUnix > 0 ? new Date(periodEndUnix * 1000) : null,
           })
           .where(eq(subscriptions.userId, row.userId));
 

@@ -35,14 +35,15 @@ function verifyClerkWebhook(payload: string, headers: Headers): unknown {
   });
 }
 
-function verifyStripeWebhook(payload: string, signature: string): unknown {
+async function verifyStripeWebhook(payload: string, signature: string): Promise<unknown> {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!secret || !stripeKey) {
     throw new Error("Stripe webhook is not configured");
   }
   const stripe = new Stripe(stripeKey);
-  return stripe.webhooks.constructEvent(payload, signature, secret);
+  // Bun uses SubtleCrypto — constructEvent is sync-only and throws here.
+  return stripe.webhooks.constructEventAsync(payload, signature, secret);
 }
 
 function resolveMatchScorer(): { scorer: MatchScorer; label: string } {

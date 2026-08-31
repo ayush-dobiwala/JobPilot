@@ -39,4 +39,4 @@ export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 export const FREE_TIER_MATCH_SCORES_PER_MONTH = 5;
 
 /** Suggested Pro list price in USD. Stripe price ID comes from env. */
-export const PRO_MONTHLY_PRICE_USD = 9;
+export const PRO_MONTHLY_PRICE_USD = 15;

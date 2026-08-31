@@ -4,7 +4,7 @@ import type { AppEnv } from "../../types.js";
 
 export function createStripeWebhookRouter(options: {
   billing: BillingStore;
-  verify: (payload: string, signature: string) => unknown;
+  verify: (payload: string, signature: string) => unknown | Promise<unknown>;
 }): Hono<AppEnv> {
   const router = new Hono<AppEnv>();
 
@@ -16,7 +16,7 @@ export function createStripeWebhookRouter(options: {
     }
 
     try {
-      const event = options.verify(payload, signature) as Parameters<
+      const event = (await options.verify(payload, signature)) as Parameters<
         BillingStore["handleStripeEvent"]
       >[0];
       await options.billing.handleStripeEvent(event);

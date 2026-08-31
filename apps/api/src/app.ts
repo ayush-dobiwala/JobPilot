@@ -32,7 +32,7 @@ export interface CreateAppOptions {
   requireAuth: MiddlewareHandler<AppEnv>;
   rateLimit: MiddlewareHandler<AppEnv>;
   verifyClerkWebhook: (payload: string, headers: Headers) => unknown;
-  verifyStripeWebhook: (payload: string, signature: string) => unknown;
+  verifyStripeWebhook: (payload: string, signature: string) => unknown | Promise<unknown>;
 }
 
 export function createApp(options: CreateAppOptions): Hono<AppEnv> {
