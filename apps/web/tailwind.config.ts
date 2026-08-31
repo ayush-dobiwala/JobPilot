@@ -6,8 +6,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["Outfit", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ['"Source Sans 3"', "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Outfit", '"Source Sans 3"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

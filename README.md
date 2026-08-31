@@ -2,7 +2,9 @@
 
 Job application autopilot and tracker for job seekers who are tired of spreadsheets and re-typing the same profile into every ATS. Track applications on a Kanban board, score resume–JD fit with AI, and auto-fill Greenhouse/Lever-style forms with a **human-in-the-loop** confirmation step — the worker never submits without you.
 
-> Live demo: see [`docs/DEPLOY.md`](./docs/DEPLOY.md) (Cloudflare Pages + Render free tier). Local keys: [`docs/KEYS_AND_SETUP.md`](./docs/KEYS_AND_SETUP.md).
+**Live demo:** [https://jobpilot-a7i.pages.dev](https://jobpilot-a7i.pages.dev)
+
+Deploy notes: [`docs/DEPLOY.md`](./docs/DEPLOY.md) · Local keys: [`docs/KEYS_AND_SETUP.md`](./docs/KEYS_AND_SETUP.md).
 
 ---
 

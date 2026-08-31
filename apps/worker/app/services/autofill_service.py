@@ -1,7 +1,10 @@
 """Autofill orchestration."""
 
+from __future__ import annotations
+
 import base64
 from collections.abc import Callable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -10,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from app.autofill.registry import resolve_filler
-from app.models.autofill import AutofillRequest, AutofillResponse, ConfirmSubmitResponse
+from app.models.autofill import Applicant, AutofillRequest, AutofillResponse, ConfirmSubmitResponse
 from app.models.common import LogEntry
 from app.selenium_driver import create_driver
 
@@ -25,6 +28,44 @@ def _capture_screenshot(driver: WebDriver) -> str:
     return base64.b64encode(png_bytes).decode("ascii")
 
 
+def _applicant_fields(applicant: Applicant) -> dict[str, str]:
+    fields: dict[str, str] = {
+        "name": applicant.name,
+        "email": applicant.email,
+    }
+    if applicant.phone:
+        fields["phone"] = applicant.phone
+    if applicant.linkedinUrl:
+        fields["linkedin"] = applicant.linkedinUrl
+    if applicant.portfolioUrl:
+        fields["portfolio"] = applicant.portfolioUrl
+    if applicant.workAuthStatus:
+        fields["work_auth"] = applicant.workAuthStatus
+    if applicant.coverLetter:
+        fields["cover_letter"] = applicant.coverLetter
+    return fields
+
+
+def build_review_url(
+    form_url: str,
+    applicant: Applicant,
+    *,
+    company: str | None = None,
+    role: str | None = None,
+) -> str:
+    """Build a URL the candidate can open with fields pre-filled (demo forms)."""
+    fields = _applicant_fields(applicant)
+    if company:
+        fields["company"] = company
+    if role:
+        fields["role"] = role
+
+    parts = urlsplit(form_url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query.update(fields)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+
+
 def run_autofill(
     request: AutofillRequest,
     *,
@@ -37,6 +78,13 @@ def run_autofill(
     ]
     driver = factory()
     screenshot: str | None = None
+    filled_fields = _applicant_fields(request.applicant)
+    review_url = build_review_url(
+        request.formUrl,
+        request.applicant,
+        company=request.company,
+        role=request.roleTitle,
+    )
     try:
         driver.get(request.formUrl)
         filler = resolve_filler(request.formUrl)
@@ -47,10 +95,24 @@ def run_autofill(
         logs.extend(fill_logs)
         screenshot = _capture_screenshot(driver)
         logs.append(LogEntry(step="screenshot", message="Captured autofill screenshot."))
+        logs.append(
+            LogEntry(
+                step="review_ready",
+                message=(
+                    "Open the review URL, verify fields, submit yourself, "
+                    "then mark Applied in JobPilot."
+                ),
+            )
+        )
     finally:
         driver.quit()
 
-    return AutofillResponse(logs=logs, screenshotBase64=screenshot)
+    return AutofillResponse(
+        logs=logs,
+        screenshotBase64=screenshot,
+        filledFields=filled_fields,
+        reviewUrl=review_url,
+    )
 
 
 def run_confirm_submit(
@@ -58,20 +120,20 @@ def run_confirm_submit(
     *,
     driver_factory: Callable[[], WebDriver] | None = None,
 ) -> ConfirmSubmitResponse:
-    """Click final Submit on the demo form only (HITL confirmation step)."""
+    """Optional demo-only submit click. Prefer human submit via review URL."""
     factory = driver_factory or create_driver
     if not _is_demo_form_url(form_url):
         return ConfirmSubmitResponse(
             logs=[
                 LogEntry(
-                    step="reject",
-                    message="confirm-submit is only allowed for the demo fixture form.",
+                    step="skip",
+                    message="Human already submitted on the live form — worker confirm skipped.",
                 )
             ]
         )
 
     logs: list[LogEntry] = [
-        LogEntry(step="start", message=f"Confirm submit for demo form: {form_url}")
+        LogEntry(step="start", message=f"Optional demo confirm for: {form_url}")
     ]
     driver = factory()
     try:
@@ -82,7 +144,6 @@ def run_confirm_submit(
         try:
             wait.until(EC.visibility_of_element_located((By.ID, "success")))
         except TimeoutException:
-            # file:// fixtures may not fire native submit in all headless builds
             driver.execute_script(
                 "document.getElementById('application-form')"
                 ".dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));"

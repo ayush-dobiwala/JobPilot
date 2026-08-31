@@ -11,12 +11,13 @@ export class MemoryResumeStore implements ResumeStore {
 
   async create(
     userId: string,
-    input: { parsedText: string; isPrimary?: boolean },
+    input: { parsedText: string; isPrimary?: boolean; storagePath?: string; id?: string },
   ): Promise<Resume> {
+    const id = input.id ?? crypto.randomUUID();
     const resume: Resume = {
-      id: crypto.randomUUID(),
+      id,
       userId,
-      storagePath: `inline/${crypto.randomUUID()}`,
+      storagePath: input.storagePath ?? `inline/${id}`,
       parsedText: input.parsedText,
       isPrimary: input.isPrimary ?? false,
       uploadedAt: new Date().toISOString(),

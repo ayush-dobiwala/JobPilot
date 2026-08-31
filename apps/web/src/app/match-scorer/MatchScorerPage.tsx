@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { FileUp, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMatchScorer } from "@/hooks/useMatchScorer";
 
 function resumeLabel(
-  resume: { id: string; parsedText: string | null; isPrimary: boolean },
+  resume: { id: string; parsedText: string | null; isPrimary: boolean; storagePath: string },
   index: number,
 ) {
-  const preview = resume.parsedText?.slice(0, 48).replace(/\s+/g, " ") ?? "Resume";
-  return resume.isPrimary ? `${preview}… (primary)` : `${preview}… (#${index + 1})`;
+  const filePart = resume.storagePath.includes("/")
+    ? resume.storagePath.split("/").pop()
+    : null;
+  const fromFile =
+    filePart && !filePart.startsWith("inline")
+      ? filePart.replace(/^[0-9a-f-]{36}-/i, "")
+      : null;
+  const preview =
+    fromFile || resume.parsedText?.slice(0, 48).replace(/\s+/g, " ") || `Resume ${index + 1}`;
+  return resume.isPrimary ? `${preview} (primary)` : preview;
 }
 
 export function MatchScorerPage() {
-  const { resumes, usage, result, loading, error, saveResume, analyze } = useMatchScorer();
+  const { resumes, usage, result, loading, error, saveResume, uploadResume, analyze } =
+    useMatchScorer();
   const [resumeText, setResumeText] = useState("");
   const [selectedResumeId, setSelectedResumeId] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [savingResume, setSavingResume] = useState(false);
+  const [uploadName, setUploadName] = useState<string | null>(null);
 
   const effectiveResumeId = useMemo(() => {
     if (selectedResumeId) return selectedResumeId;
@@ -45,6 +55,20 @@ export function MatchScorerPage() {
     }
   };
 
+  const handleUpload = async (fileList: FileList | null) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    setSavingResume(true);
+    setUploadName(file.name);
+    try {
+      const created = await uploadResume(file);
+      setSelectedResumeId(created.id);
+    } finally {
+      setSavingResume(false);
+      setUploadName(null);
+    }
+  };
+
   const handleAnalyze = () => {
     if (!effectiveResumeId || jobDescription.trim() === "") return;
     void analyze(effectiveResumeId, jobDescription.trim());
@@ -59,8 +83,7 @@ export function MatchScorerPage() {
             Match Scorer
           </h1>
           <p className="text-sm text-muted-foreground">
-            Paste a job description and compare it against your resume. Without an Anthropic key the
-            API uses a local heuristic mock — good for wiring tests, not interview-grade coaching.
+            Upload a PDF or Word resume, or paste text, then compare it to a job description.
           </p>
         </div>
         {usage ? (
@@ -76,17 +99,48 @@ export function MatchScorerPage() {
         <Card>
           <CardHeader>
             <CardTitle>Inputs</CardTitle>
-            <CardDescription>Save resume text once, reuse it for every JD.</CardDescription>
+            <CardDescription>
+              Attach PDF / Word (.docx), or paste text. We extract the words for matching.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="resume-text">Resume text</Label>
+              <Label htmlFor="resume-file">Upload resume</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <label
+                  htmlFor="resume-file"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+                >
+                  <FileUp className="h-4 w-4 text-primary" />
+                  Choose PDF or Word
+                </label>
+                <input
+                  id="resume-file"
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="sr-only"
+                  disabled={savingResume}
+                  onChange={(e) => {
+                    void handleUpload(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {uploadName
+                    ? `Uploading ${uploadName}…`
+                    : "Max 5 MB · .pdf or .docx (not old .doc)"}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="resume-text">Or paste resume text</Label>
               <Textarea
                 id="resume-text"
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
                 placeholder="Paste your resume plain text here..."
-                className="min-h-[140px]"
+                className="min-h-[120px]"
               />
               <Button
                 type="button"
@@ -95,7 +149,7 @@ export function MatchScorerPage() {
                 disabled={savingResume || resumeText.trim() === ""}
                 onClick={() => void handleSaveResume()}
               >
-                {savingResume ? "Saving..." : "Save resume"}
+                {savingResume ? "Saving..." : "Save text resume"}
               </Button>
             </div>
 
@@ -103,14 +157,14 @@ export function MatchScorerPage() {
               <Label htmlFor="resume-select">Saved resume</Label>
               {resumes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No saved resume yet — paste one above.
+                  No saved resume yet — upload a file or paste text above.
                 </p>
               ) : (
                 <select
                   id="resume-select"
                   value={effectiveResumeId}
                   onChange={(e) => setSelectedResumeId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground"
                 >
                   {resumes.map((resume, index) => (
                     <option key={resume.id} value={resume.id}>

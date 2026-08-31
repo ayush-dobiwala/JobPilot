@@ -7,7 +7,14 @@ import type {
 } from "@jobpilot/shared-types";
 import { and, desc, eq } from "drizzle-orm";
 import type { Database } from "../db/client.js";
-import { applications, automationRuns, profiles, scrapedJobs, users } from "../db/schema.js";
+import {
+  applicationEvents,
+  applications,
+  automationRuns,
+  profiles,
+  scrapedJobs,
+  users,
+} from "../db/schema.js";
 import { toAutomationRun } from "../lib/mappers.js";
 import type { JobQueue } from "../queue/types.js";
 
@@ -42,6 +49,14 @@ type WorkerLog = {
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function absoluteWorkerUrl(workerBaseUrl: string, maybeRelative: string): string {
+  if (/^https?:\/\//i.test(maybeRelative)) {
+    return maybeRelative;
+  }
+  const base = workerBaseUrl.replace(/\/$/, "");
+  return maybeRelative.startsWith("/") ? `${base}${maybeRelative}` : `${base}/${maybeRelative}`;
 }
 
 function normalizeLogs(logs: WorkerLog[], screenshotBase64?: string | null): AutomationLogEntry[] {
@@ -107,7 +122,7 @@ export function createAutomationService(
           userId,
           type: "scrape",
           status: "queued",
-          logs: [{ step: "queued", message: "Scrape job queued", timestamp: nowIso() }],
+          logs: [{ step: "queued", message: "Job search queued", timestamp: nowIso() }],
         })
         .returning();
 
@@ -143,7 +158,7 @@ export function createAutomationService(
           applicationId: input.applicationId,
           type: "autofill",
           status: "queued",
-          logs: [{ step: "queued", message: "Autofill job queued", timestamp: nowIso() }],
+          logs: [{ step: "queued", message: "Autofill queued", timestamp: nowIso() }],
         })
         .returning();
 
@@ -167,14 +182,75 @@ export function createAutomationService(
       if (!run) {
         throw new AutomationNotFoundError();
       }
+      if (!run.applicationId) {
+        throw new ApplicationNotFoundError();
+      }
 
+      const [app] = await db
+        .select()
+        .from(applications)
+        .where(and(eq(applications.id, run.applicationId), eq(applications.userId, userId)))
+        .limit(1);
+      if (!app) {
+        throw new ApplicationNotFoundError();
+      }
+
+      const previousStatus = app.status;
+      const appliedAt = new Date();
+
+      await db
+        .update(applications)
+        .set({
+          status: "applied",
+          appliedAt,
+          source: "automation",
+        })
+        .where(eq(applications.id, app.id));
+
+      if (previousStatus !== "applied") {
+        await db.insert(applicationEvents).values({
+          applicationId: app.id,
+          eventType: "status_change",
+          payload: {
+            from: previousStatus,
+            to: "applied",
+            via: "automation_confirm",
+            company: app.company,
+            roleTitle: app.roleTitle,
+          },
+        });
+      }
+
+      const reviewLog = run.logs.find((log) => log.step === "review_url");
       const formUrlLog = run.logs.find((log) => log.step === "form_url");
       const formUrl =
+        reviewLog?.message.replace(/^Review URL:\s*/, "") ||
         formUrlLog?.message.replace(/^Form URL:\s*/, "") ||
         `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`;
 
-      const result = await callWorker<{ logs: WorkerLog[] }>("/confirm-submit", { formUrl });
-      const logs = [...run.logs, ...normalizeLogs(result.logs)];
+      let workerLogs: AutomationLogEntry[] = [];
+      try {
+        const result = await callWorker<{ logs: WorkerLog[] }>("/confirm-submit", { formUrl });
+        workerLogs = normalizeLogs(result.logs);
+      } catch {
+        workerLogs = [
+          {
+            step: "worker_confirm",
+            message: "Worker confirm skipped — application already marked Applied from your review.",
+            timestamp: nowIso(),
+          },
+        ];
+      }
+
+      const logs = [
+        ...run.logs,
+        ...workerLogs,
+        {
+          step: "marked_applied",
+          message: `Moved ${app.company} — ${app.roleTitle} to Applied on your board.`,
+          timestamp: nowIso(),
+        },
+      ];
 
       const [updated] = await db
         .update(automationRuns)
@@ -232,15 +308,33 @@ export async function processAutomationJob(
         logs: WorkerLog[];
       };
 
+      const created: string[] = [];
       for (const scraped of body.jobs) {
+        const jobUrl = absoluteWorkerUrl(workerBaseUrl, scraped.url);
         await db.insert(scrapedJobs).values({
           source: "generic",
           title: scraped.title,
           company: scraped.company,
           description: scraped.description ?? null,
-          url: scraped.url,
+          url: jobUrl,
           raw: scraped as unknown as Record<string, unknown>,
         });
+
+        const [app] = await db
+          .insert(applications)
+          .values({
+            userId: job.userId,
+            company: scraped.company,
+            roleTitle: scraped.title,
+            jobUrl,
+            status: "wishlist",
+            source: "automation",
+            notes: scraped.description ?? null,
+          })
+          .returning();
+        if (app) {
+          created.push(`${app.company} — ${app.roleTitle}`);
+        }
       }
 
       const logs = normalizeLogs(body.logs);
@@ -253,7 +347,15 @@ export async function processAutomationJob(
             ...logs,
             {
               step: "persisted",
-              message: `Saved ${body.jobs.length} scraped job(s)`,
+              message: `Saved ${body.jobs.length} listing(s)`,
+              timestamp: nowIso(),
+            },
+            {
+              step: "board_import",
+              message:
+                created.length > 0
+                  ? `Added to Wishlist: ${created.join("; ")}`
+                  : "No applications created",
               timestamp: nowIso(),
             },
           ],
@@ -268,13 +370,33 @@ export async function processAutomationJob(
       .from(profiles)
       .where(eq(profiles.userId, job.userId))
       .limit(1);
-    const formUrl = job.formUrl ?? `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`;
+    const [app] = job.applicationId
+      ? await db
+          .select()
+          .from(applications)
+          .where(eq(applications.id, job.applicationId))
+          .limit(1)
+      : [undefined];
+
+    const formUrl = absoluteWorkerUrl(
+      workerBaseUrl,
+      job.formUrl ??
+        app?.jobUrl ??
+        `${workerBaseUrl.replace(/\/$/, "")}/fixtures/demo-apply.html`,
+    );
+
+    const coverLetter =
+      app != null
+        ? `Hello ${app.company} hiring team,\n\nI'm excited to apply for the ${app.roleTitle} role. Thank you for considering my application.\n\nPrepared with JobPilot — I will review this form before submitting.`
+        : "Excited to apply. Prepared with JobPilot — I will review this form before submitting.";
 
     const response = await fetch(`${workerBaseUrl.replace(/\/$/, "")}/autofill`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         formUrl,
+        company: app?.company ?? null,
+        roleTitle: app?.roleTitle ?? null,
         applicant: {
           name: user?.name ?? "JobPilot Candidate",
           email: user?.email ?? "candidate@example.com",
@@ -282,7 +404,7 @@ export async function processAutomationJob(
           linkedinUrl: profile?.linkedinUrl ?? null,
           portfolioUrl: profile?.portfolioUrl ?? null,
           workAuthStatus: profile?.workAuthStatus ?? null,
-          coverLetter: "Excited to apply via JobPilot human-in-the-loop autofill.",
+          coverLetter,
         },
       }),
     });
@@ -292,14 +414,28 @@ export async function processAutomationJob(
     const body = (await response.json()) as {
       logs: WorkerLog[];
       screenshotBase64?: string | null;
+      filledFields?: Record<string, string>;
+      reviewUrl?: string | null;
     };
 
+    const reviewUrl = body.reviewUrl ?? formUrl;
     const logs = [
       { step: "form_url", message: `Form URL: ${formUrl}`, timestamp: nowIso() },
+      { step: "review_url", message: `Review URL: ${reviewUrl}`, timestamp: nowIso() },
+      ...(body.filledFields
+        ? [
+            {
+              step: "filled_fields",
+              message: JSON.stringify(body.filledFields),
+              timestamp: nowIso(),
+            },
+          ]
+        : []),
       ...normalizeLogs(body.logs, body.screenshotBase64),
       {
         step: "awaiting_confirm",
-        message: "Form filled. Waiting for human confirm-submit.",
+        message:
+          "Form prepared. Open the review link, submit yourself if everything looks right, then mark Applied here.",
         timestamp: nowIso(),
       },
     ];

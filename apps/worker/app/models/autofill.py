@@ -22,6 +22,8 @@ class AutofillRequest(BaseModel):
 
     formUrl: str
     applicant: Applicant
+    company: str | None = None
+    roleTitle: str | None = None
 
 
 class AutofillResponse(BaseModel):
@@ -29,6 +31,8 @@ class AutofillResponse(BaseModel):
 
     logs: list[LogEntry]
     screenshotBase64: str | None = None
+    filledFields: dict[str, str] = {}
+    reviewUrl: str | None = None
 
 
 class ConfirmSubmitRequest(BaseModel):

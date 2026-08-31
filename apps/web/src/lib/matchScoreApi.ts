@@ -54,3 +54,18 @@ export async function createResume(
   });
   return parseJson<Resume>(response);
 }
+
+export async function uploadResumeFile(
+  token: string | null,
+  file: File,
+  isPrimary = false,
+): Promise<Resume> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("isPrimary", isPrimary ? "true" : "false");
+  const response = await apiFetch("/api/resumes/upload", token, {
+    method: "POST",
+    body: form,
+  });
+  return parseJson<Resume>(response);
+}

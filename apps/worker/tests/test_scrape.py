@@ -9,8 +9,9 @@ def test_scrape_returns_demo_jobs_for_query() -> None:
     assert response.status_code == 200
     body = response.json()
     assert len(body["jobs"]) == 3
-    assert all("python" in job["title"].lower() or "Python" in job["title"] for job in body["jobs"])
+    assert all("python" in job["title"].lower() for job in body["jobs"])
     assert body["jobs"][0]["company"]
+    assert "demo-apply.html" in body["jobs"][0]["url"]
     assert body["logs"]
 
 

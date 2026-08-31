@@ -5,73 +5,161 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Demo ATS Application</title>
     <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1220;
+        --card: #171b2e;
+        --text: #eef2ff;
+        --muted: #a5b4fc;
+        --accent: #818cf8;
+        --ok: #34d399;
+        --border: #2e3350;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f8fafc;
+          --card: #ffffff;
+          --text: #0f172a;
+          --muted: #64748b;
+          --accent: #4f46e5;
+          --ok: #059669;
+          --border: #e2e8f0;
+        }
+      }
       body {
-        font-family: system-ui, sans-serif;
+        font-family: "Segoe UI", system-ui, sans-serif;
         max-width: 640px;
         margin: 2rem auto;
-        padding: 0 1rem;
+        padding: 0 1rem 3rem;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .banner {
+        background: color-mix(in srgb, var(--accent) 18%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 1.25rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+      }
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.6rem;
+      }
+      .meta {
+        color: var(--muted);
+        margin: 0 0 1.25rem;
+        font-size: 0.95rem;
       }
       label {
         display: block;
         margin-top: 1rem;
         font-weight: 600;
+        font-size: 0.9rem;
       }
       input,
       select,
       textarea {
         width: 100%;
-        padding: 0.5rem;
-        margin-top: 0.25rem;
+        padding: 0.65rem 0.75rem;
+        margin-top: 0.35rem;
         box-sizing: border-box;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
       }
       button {
         margin-top: 1.5rem;
-        padding: 0.75rem 1.5rem;
-        background: #2563eb;
+        padding: 0.8rem 1.4rem;
+        background: var(--accent);
         color: #fff;
         border: none;
+        border-radius: 10px;
         cursor: pointer;
+        font-weight: 600;
       }
       #success {
         display: none;
-        color: #15803d;
+        color: var(--ok);
         margin-top: 1rem;
+        font-weight: 600;
       }
     </style>
   </head>
   <body>
-    <h1>Apply — Demo Company</h1>
-    <p>Self-hosted dummy ATS application form for JobPilot integration tests.</p>
-    <form id="application-form" action="#" method="post">
-      <label for="name">Full Name</label>
-      <input type="text" id="name" name="name" required autocomplete="name" />
+    <div class="banner">
+      JobPilot review mode — fields may be pre-filled. Check everything carefully, edit if needed,
+      then submit yourself. JobPilot never submits without you.
+    </div>
+    <div class="card">
+      <h1 id="page-title">Apply — Demo Company</h1>
+      <p class="meta" id="page-role">Self-hosted demo application form</p>
+      <form id="application-form" action="#" method="post">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" required autocomplete="name" />
 
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" required autocomplete="email" />
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email" />
 
-      <label for="phone">Phone</label>
-      <input type="tel" id="phone" name="phone" autocomplete="tel" />
+        <label for="phone">Phone</label>
+        <input type="tel" id="phone" name="phone" autocomplete="tel" />
 
-      <label for="linkedin">LinkedIn URL</label>
-      <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/you" />
+        <label for="linkedin">LinkedIn URL</label>
+        <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/you" />
 
-      <label for="portfolio">Portfolio URL</label>
-      <input type="url" id="portfolio" name="portfolio" placeholder="https://yoursite.dev" />
+        <label for="portfolio">Portfolio URL</label>
+        <input type="url" id="portfolio" name="portfolio" placeholder="https://yoursite.dev" />
 
-      <label for="work_auth">Work Authorization</label>
-      <select id="work_auth" name="work_auth">
-        <option value="">Select…</option>
-        <option value="authorized">Authorized to work without sponsorship</option>
-        <option value="sponsor">Require visa sponsorship</option>
-      </select>
+        <label for="work_auth">Work Authorization</label>
+        <select id="work_auth" name="work_auth">
+          <option value="">Select…</option>
+          <option value="authorized">Authorized to work without sponsorship</option>
+          <option value="sponsor">Require visa sponsorship</option>
+        </select>
 
-      <label for="cover_letter">Cover Letter</label>
-      <textarea id="cover_letter" name="cover_letter" rows="6"></textarea>
+        <label for="cover_letter">Cover Letter</label>
+        <textarea id="cover_letter" name="cover_letter" rows="6"></textarea>
 
-      <button type="submit" id="submit-btn">Submit Application</button>
-    </form>
-    <p id="success">Application submitted successfully.</p>
+        <button type="submit" id="submit-btn">Submit Application</button>
+      </form>
+      <p id="success">Application submitted successfully. Return to JobPilot and mark it as Applied.</p>
+    </div>
     <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var company = params.get("company");
+        var role = params.get("role") || params.get("title");
+        if (company) {
+          document.getElementById("page-title").textContent = "Apply — " + company;
+        }
+        if (role) {
+          document.getElementById("page-role").textContent = role;
+        }
+        var map = {
+          name: "name",
+          email: "email",
+          phone: "phone",
+          linkedin: "linkedin",
+          portfolio: "portfolio",
+          cover_letter: "cover_letter",
+          work_auth: "work_auth",
+        };
+        Object.keys(map).forEach(function (key) {
+          if (!params.has(key)) return;
+          var el = document.getElementById(map[key]);
+          if (!el) return;
+          el.value = params.get(key);
+        });
+      })();
+
       document.getElementById("application-form").addEventListener("submit", function (e) {
         e.preventDefault();
         document.getElementById("success").style.display = "block";

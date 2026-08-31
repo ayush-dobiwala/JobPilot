@@ -4,47 +4,55 @@
 
 @layer base {
   :root {
-    --background: 220 33% 97%;
-    --foreground: 228 32% 12%;
+    /* Light: clean slate + teal (readable, not purple-on-white) */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 228 32% 12%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 228 32% 12%;
-    --primary: 243 75% 54%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 173 80% 28%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 93%;
-    --secondary-foreground: 228 25% 20%;
-    --muted: 220 18% 93%;
-    --muted-foreground: 228 10% 40%;
-    --accent: 162 64% 40%;
+    --secondary: 210 30% 94%;
+    --secondary-foreground: 222 35% 18%;
+    --muted: 210 28% 94%;
+    --muted-foreground: 215 16% 36%;
+    --accent: 188 72% 36%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 86%;
-    --input: 220 16% 86%;
-    --ring: 243 75% 54%;
+    --border: 214 24% 86%;
+    --input: 214 24% 86%;
+    --ring: 173 80% 28%;
+    --surface-glow: 173 55% 42%;
+    --hero-mid: 210 35% 96%;
+    --hero-deep: 210 40% 98%;
   }
 
   .dark {
-    --background: 232 36% 6%;
-    --foreground: 210 20% 96%;
-    --card: 232 28% 9%;
-    --card-foreground: 210 20% 96%;
-    --popover: 232 28% 9%;
-    --popover-foreground: 210 20% 96%;
-    --primary: 243 80% 68%;
-    --primary-foreground: 232 36% 8%;
-    --secondary: 232 20% 14%;
-    --secondary-foreground: 210 16% 90%;
-    --muted: 232 18% 14%;
-    --muted-foreground: 220 10% 65%;
-    --accent: 162 72% 45%;
-    --accent-foreground: 232 36% 8%;
+    /* Rich indigo night sky — the look users loved */
+    --background: 243 42% 7%;
+    --foreground: 220 30% 96%;
+    --card: 243 36% 11%;
+    --card-foreground: 220 30% 96%;
+    --popover: 243 34% 13%;
+    --popover-foreground: 220 30% 96%;
+    --primary: 252 90% 72%;
+    --primary-foreground: 243 42% 10%;
+    --secondary: 243 28% 16%;
+    --secondary-foreground: 220 25% 92%;
+    --muted: 243 24% 15%;
+    --muted-foreground: 230 18% 72%;
+    --accent: 162 70% 45%;
+    --accent-foreground: 243 42% 8%;
     --destructive: 0 72% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 232 16% 18%;
-    --input: 232 16% 18%;
-    --ring: 243 80% 68%;
+    --border: 243 22% 22%;
+    --input: 243 22% 22%;
+    --ring: 252 90% 72%;
+    --surface-glow: 252 80% 55%;
+    --hero-mid: 243 40% 10%;
+    --hero-deep: 243 48% 5%;
   }
 
   * {
@@ -66,5 +74,27 @@
   h3,
   h4 {
     @apply font-display tracking-tight;
+  }
+}
+
+@layer utilities {
+  .surface-atmosphere {
+    background:
+      radial-gradient(
+        ellipse 90% 55% at 50% -15%,
+        hsl(var(--surface-glow) / 0.35),
+        transparent 58%
+      ),
+      radial-gradient(ellipse 50% 40% at 0% 20%, hsl(var(--accent) / 0.12), transparent 55%),
+      radial-gradient(ellipse 45% 35% at 100% 10%, hsl(var(--primary) / 0.14), transparent 50%),
+      linear-gradient(180deg, hsl(var(--hero-mid)), hsl(var(--hero-deep)));
+  }
+
+  .mesh-grid {
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(180deg, black 0%, transparent 85%);
   }
 }

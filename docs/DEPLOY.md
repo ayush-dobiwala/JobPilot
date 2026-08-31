@@ -175,7 +175,7 @@ VITE_API_URL=https://jobpilot-api.onrender.com
 At the top of `README.md`:
 
 ```markdown
-**Live demo:** https://<project>.pages.dev
+**Live demo:** https://jobpilot-a7i.pages.dev
 ```
 
 Optional: 60-second Loom of Match Scorer + Autofill → link under the demo.

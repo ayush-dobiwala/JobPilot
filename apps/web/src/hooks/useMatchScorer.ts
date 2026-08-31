@@ -7,6 +7,7 @@ import {
   fetchMatchScoreUsage,
   listResumes,
   runMatchScore,
+  uploadResumeFile,
 } from "@/lib/matchScoreApi";
 
 export function useMatchScorer() {
@@ -44,6 +45,16 @@ export function useMatchScorer() {
     [getToken, resumes.length],
   );
 
+  const uploadResume = useCallback(
+    async (file: File) => {
+      const token = await getToken();
+      const created = await uploadResumeFile(token, file, resumes.length === 0);
+      setResumes((prev) => [created, ...prev]);
+      return created;
+    },
+    [getToken, resumes.length],
+  );
+
   const analyze = useCallback(
     async (resumeId: string, jobDescription: string) => {
       setLoading(true);
@@ -75,6 +86,7 @@ export function useMatchScorer() {
     loading,
     error,
     saveResume,
+    uploadResume,
     analyze,
     refresh,
   };

@@ -69,4 +69,13 @@ describe("resumes routes", () => {
     expect(body.data).toHaveLength(1);
     expect(body.data[0]?.parsedText).toBe("Resume body");
   });
+
+  it("rejects upload without a file", async () => {
+    const form = new FormData();
+    const response = await app().request("/api/resumes/upload", {
+      method: "POST",
+      body: form,
+    });
+    expect(response.status).toBe(400);
+  });
 });

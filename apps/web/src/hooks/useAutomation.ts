@@ -41,14 +41,17 @@ export function useAutomation() {
     return () => window.clearInterval(id);
   }, [refresh]);
 
-  async function startScrape(query: string) {
+  async function startScrape(query: string, url?: string) {
     setBusy(true);
     try {
       const token = await getToken();
       if (!token) {
         throw new Error("Not signed in");
       }
-      await enqueueScrape(token, { query });
+      await enqueueScrape(token, {
+        ...(query ? { query } : {}),
+        ...(url ? { url } : {}),
+      });
       await refresh();
     } finally {
       setBusy(false);

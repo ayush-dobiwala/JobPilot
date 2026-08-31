@@ -1,6 +1,8 @@
 import { ClerkProvider } from "@clerk/clerk-react";
+import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AnalyticsPage } from "@/app/analytics/AnalyticsPage";
+import { AboutPage } from "@/app/about/AboutPage";
 import { ApplicationsPage } from "@/app/applications/ApplicationsPage";
 import { SignInPage } from "@/app/auth/SignInPage";
 import { SignUpPage } from "@/app/auth/SignUpPage";
@@ -12,7 +14,8 @@ import { MatchScorerPage } from "@/app/match-scorer/MatchScorerPage";
 import { SettingsPage } from "@/app/settings/SettingsPage";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
-import { clerkAppearance, getClerkPublishableKey } from "@/lib/clerk";
+import { getClerkAppearance, getClerkPublishableKey } from "@/lib/clerk";
+import { useThemeStore } from "@/stores/theme";
 
 function MissingClerkConfig() {
   return (
@@ -31,6 +34,13 @@ function MissingClerkConfig() {
 
 export function App() {
   const publishableKey = getClerkPublishableKey();
+  const theme = useThemeStore((state) => state.theme);
+  const hydrate = useThemeStore((state) => state.hydrate);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
   if (!publishableKey) {
     return <MissingClerkConfig />;
   }
@@ -38,7 +48,7 @@ export function App() {
   return (
     <ClerkProvider
       publishableKey={publishableKey}
-      appearance={clerkAppearance}
+      appearance={getClerkAppearance(theme)}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       afterSignOutUrl="/"
@@ -46,6 +56,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
           <Route element={<ProtectedRoute />}>

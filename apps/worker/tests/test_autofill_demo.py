@@ -38,19 +38,21 @@ def test_autofill_endpoint_with_mocked_driver(demo_apply_file_url: str) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["screenshotBase64"]
+    assert body["reviewUrl"]
+    assert body["filledFields"]["email"] == "jane@example.com"
     assert any(log["step"] == "stop" for log in body["logs"])
     mock_driver.get.assert_called_once_with(demo_apply_file_url)
     mock_driver.quit.assert_called_once()
 
 
-def test_confirm_submit_rejects_non_demo_url() -> None:
+def test_confirm_submit_skips_non_demo_url() -> None:
     response = client.post(
         "/confirm-submit",
         json={"formUrl": "https://boards.greenhouse.io/acme/jobs/123"},
     )
     assert response.status_code == 200
     body = response.json()
-    assert any(log["step"] == "reject" for log in body["logs"])
+    assert any(log["step"] == "skip" for log in body["logs"])
 
 
 @pytest.mark.skipif(not can_create_driver(), reason="Chrome/Chromium or chromedriver not available")

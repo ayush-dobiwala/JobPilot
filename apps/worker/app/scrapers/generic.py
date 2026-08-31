@@ -2,7 +2,7 @@
 
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from app.models.common import LogEntry
 from app.models.scrape import Job
@@ -78,26 +78,30 @@ class _JobsBoardParser(HTMLParser):
             self._buffer.append(data)
 
 
+def _apply_url(company: str, title: str) -> str:
+    """Point listings at the demo apply form (API expands relative URLs)."""
+    return f"/fixtures/demo-apply.html?company={quote(company)}&role={quote(title)}"
+
+
 def _demo_jobs_for_query(query: str) -> list[Job]:
-    """Return three deterministic remote SWE jobs matching the query."""
-    slug = query.strip().lower().replace(" ", "-") or "software-engineer"
+    """Return three deterministic jobs with apply links for HITL autofill."""
     companies = ("Nimbus Labs", "Orbit Systems", "Vertex Cloud")
     titles = (
-        f"Remote {query.title()} Engineer",
+        f"{query.title()} Engineer",
         f"Senior {query.title()} Developer",
-        f"Staff {query.title()} — Remote",
+        f"{query.title()} Specialist — Remote",
     )
     return [
         Job(
             title=title,
             company=company,
-            url=f"https://example.com/jobs/{slug}-{index}",
+            url=_apply_url(company, title),
             description=(
-                f"Fully remote {query} role building production systems. "
-                "No live LinkedIn/Indeed scraping in tests."
+                f"Full-time {query} role. Use JobPilot autofill to prepare the application, "
+                "then open the form, review, and submit yourself."
             ),
         )
-        for index, (title, company) in enumerate(zip(titles, companies, strict=True))
+        for title, company in zip(titles, companies, strict=True)
     ]
 
 
@@ -118,7 +122,10 @@ class GenericScraper(BaseScraper):
 
     def scrape(self, query: str | None, url: str | None) -> tuple[list[Job], list[LogEntry]]:
         logs: list[LogEntry] = [
-            LogEntry(step="init", message="GenericScraper started (no live LinkedIn/Indeed).")
+            LogEntry(
+                step="init",
+                message="Searching jobs (demo board / sample listings for safe HITL testing).",
+            )
         ]
 
         if url and _is_fixture_board_url(url):
@@ -144,18 +151,34 @@ class GenericScraper(BaseScraper):
                 )
                 return jobs, logs
 
+        if url and url.startswith("http"):
+            company_host = urlparse(url).hostname or "company"
+            company = company_host.replace("www.", "").split(".")[0].title()
+            logs.append(
+                LogEntry(
+                    step="url",
+                    message="Using the pasted application link as a single job to track.",
+                )
+            )
+            return [
+                Job(
+                    title="Role from application link",
+                    company=company,
+                    url=url,
+                    description="Application link provided by you.",
+                )
+            ], logs
+
         if query:
             logs.append(
                 LogEntry(
-                    step="demo",
-                    message=f"No fixture URL provided; returning demo jobs for query={query!r}.",
+                    step="search",
+                    message=f"Building sample listings for search: {query!r}",
                 )
             )
             jobs = _demo_jobs_for_query(query)
-            logs.append(LogEntry(step="complete", message=f"Generated {len(jobs)} demo jobs."))
+            logs.append(LogEntry(step="complete", message=f"Found {len(jobs)} jobs to import."))
             return jobs, logs
 
-        logs.append(
-            LogEntry(step="complete", message="No query or fixture URL; returning empty list.")
-        )
+        logs.append(LogEntry(step="complete", message="No query or URL; returning empty list."))
         return [], logs

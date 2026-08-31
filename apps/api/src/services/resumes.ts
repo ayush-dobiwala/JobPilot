@@ -3,10 +3,13 @@ import type { Resume } from "@jobpilot/shared-types";
 import type { Database } from "../db/client.js";
 import { resumes } from "../db/schema.js";
 import { toResume } from "../lib/mappers.js";
+import { safeResumeFilename } from "../lib/resumeParse.js";
 
 export interface CreateResumeInput {
   parsedText: string;
   isPrimary?: boolean;
+  storagePath?: string;
+  id?: string;
 }
 
 export interface ResumeStore {
@@ -27,16 +30,17 @@ export function createResumesService(db: Database): ResumeStore {
     },
 
     async create(userId, input) {
-      const id = crypto.randomUUID();
+      const id = input.id ?? crypto.randomUUID();
       if (input.isPrimary) {
         await db.update(resumes).set({ isPrimary: false }).where(eq(resumes.userId, userId));
       }
+      const storagePath = input.storagePath?.trim() || `inline/${id}`;
       const [row] = await db
         .insert(resumes)
         .values({
           id,
           userId,
-          storagePath: `inline/${id}`,
+          storagePath,
           parsedText: input.parsedText.trim(),
           isPrimary: input.isPrimary ?? false,
         })
@@ -56,4 +60,8 @@ export function createResumesService(db: Database): ResumeStore {
       return row ? toResume(row) : null;
     },
   };
+}
+
+export function buildUploadStoragePath(userId: string, resumeId: string, filename: string): string {
+  return `upload/${userId}/${resumeId}-${safeResumeFilename(filename)}`;
 }

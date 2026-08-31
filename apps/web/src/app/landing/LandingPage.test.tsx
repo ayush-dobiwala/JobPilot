@@ -11,11 +11,12 @@ describe("LandingPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: /track every application/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /create a free account/i })).toHaveAttribute(
-      "href",
-      "/sign-up",
-    );
-    expect(screen.getByRole("link", { name: /sign in/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /your job search, finally in one calm place/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^start free$/i })).toHaveAttribute("href", "/sign-up");
+    expect(screen.getAllByRole("link", { name: /^sign in$/i }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /^about$/i }).length).toBeGreaterThan(0);
   });
 });
