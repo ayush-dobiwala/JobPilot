@@ -161,7 +161,10 @@ def run_autofill(
         logs.append(
             LogEntry(
                 step="stop",
-                message="Open the review URL — fields are pre-filled and demo submit runs automatically.",
+                message=(
+                    "Open the review URL — fields are pre-filled "
+                    "and demo submit runs automatically."
+                ),
             )
         )
         return AutofillResponse(

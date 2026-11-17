@@ -257,12 +257,17 @@ def _llm_refine(job: Job, html: str) -> Job | None:
                 "role": "system",
                 "content": (
                     "Extract the job posting company name and job title from the page text. "
-                    'Return JSON only: {"company":"...","title":"...","description":"short summary"}'
+                    "Return JSON only: "
+                    '{"company":"...","title":"...","description":"short summary"}'
                 ),
             },
             {
                 "role": "user",
-                "content": f"URL: {job.url}\nGuess so far: {job.company} / {job.title}\n\nPage text:\n{text}",
+                "content": (
+                    f"URL: {job.url}\n"
+                    f"Guess so far: {job.company} / {job.title}\n\n"
+                    f"Page text:\n{text}"
+                ),
             },
         ],
     }
@@ -336,7 +341,9 @@ def scrape_job_page(url: str) -> tuple[Job, list[LogEntry]]:
                 title="Role from job link",
                 company=company,
                 url=url,
-                description=f"Could not extract details automatically. Open the link to review: {url}",
+                description=(
+                    f"Could not extract details automatically. Open the link to review: {url}"
+                ),
             ),
             logs,
         )
