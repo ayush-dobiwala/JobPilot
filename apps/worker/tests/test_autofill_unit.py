@@ -63,5 +63,9 @@ def test_demo_form_filler_skips_empty_optional_fields(
     applicant = Applicant(name="Jane Doe", email="jane@example.com")
     logs = DemoFormFiller().fill(driver, applicant)
 
-    assert mock_element.send_keys.call_count == 2
+    # first name, last name, email, plus always-attached resume file input
+    assert mock_element.send_keys.call_count == 4
+    assert any(log.step == "fill" and "first name" in log.message for log in logs)
+    assert any(log.step == "fill" and "email" in log.message for log in logs)
+    assert any(log.step == "missing" and "phone" in log.message for log in logs)
     assert any(log.step == "stop" for log in logs)

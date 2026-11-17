@@ -54,7 +54,12 @@ def test_confirm_submit_skips_non_demo_url() -> None:
 
 
 @pytest.mark.skipif(not can_create_driver(), reason="Chrome/Chromium or chromedriver not available")
-def test_autofill_against_demo_fixture_with_real_selenium(demo_apply_http_url: str) -> None:
+def test_autofill_against_demo_fixture_with_real_selenium(
+    demo_apply_http_url: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Demo forms use the instant fast path unless browser mode is forced.
+    monkeypatch.setenv("DEMO_AUTOFILL_USE_BROWSER", "1")
     response = client.post(
         "/autofill",
         json={"formUrl": demo_apply_http_url, "applicant": APPLICANT},
@@ -63,6 +68,7 @@ def test_autofill_against_demo_fixture_with_real_selenium(demo_apply_http_url: s
     body = response.json()
     assert body["screenshotBase64"]
     assert len(body["logs"]) >= 3
+    assert any(log["step"] == "screenshot" for log in body["logs"])
 
 
 @pytest.mark.skipif(not can_create_driver(), reason="Chrome/Chromium or chromedriver not available")
