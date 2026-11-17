@@ -64,7 +64,8 @@ export function AnalyticsPage() {
               <Skeleton className="h-9 w-16" />
             ) : (
               <p className="font-display text-3xl">
-                {summary?.averageDaysToResponse === null || summary?.averageDaysToResponse === undefined
+                {summary?.averageDaysToResponse === null ||
+                summary?.averageDaysToResponse === undefined
                   ? "—"
                   : summary.averageDaysToResponse}
               </p>

@@ -122,8 +122,8 @@ export function LandingPage() {
               Your job search, finally in one calm place
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              JobPilot helps you track applications and see if a job matches your resume — with
-              safe form autofill coming soon, always under your review.
+              JobPilot helps you track applications and see if a job matches your resume — with safe
+              form autofill coming soon, always under your review.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="shadow-lg shadow-primary/25">
@@ -269,9 +269,7 @@ export function LandingPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p className="text-3xl font-semibold text-foreground">$0</p>
-                <p>
-                  Application board, 5 match checks each month, and autofill when it launches.
-                </p>
+                <p>Application board, 5 match checks each month, and autofill when it launches.</p>
               </CardContent>
             </Card>
             <Card className="border-primary/50 bg-background/60 shadow-lg shadow-primary/10">

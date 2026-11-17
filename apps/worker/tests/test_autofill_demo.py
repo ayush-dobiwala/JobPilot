@@ -1,6 +1,6 @@
 """Autofill integration tests via FastAPI TestClient and optional real Selenium."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from app.main import app

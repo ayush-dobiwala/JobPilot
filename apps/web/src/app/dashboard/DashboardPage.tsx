@@ -63,7 +63,8 @@ export function DashboardPage() {
             ) : null}
             {status === "missing" ? (
               <p className="text-sm text-muted-foreground">
-                Signed in, but your account row could not be created yet. Refresh once and try again.
+                Signed in, but your account row could not be created yet. Refresh once and try
+                again.
               </p>
             ) : null}
             {status === "error" ? (

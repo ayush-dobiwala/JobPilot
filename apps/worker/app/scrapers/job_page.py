@@ -14,7 +14,6 @@ import httpx
 from app.models.common import LogEntry
 from app.models.scrape import Job
 
-
 USER_AGENT = (
     "Mozilla/5.0 (compatible; JobPilot/1.0; +https://jobpilot-a7i.pages.dev) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -85,7 +84,9 @@ class _PageSignalsParser(HTMLParser):
 def _hostname_company(url: str) -> str:
     host = urlparse(url).hostname or "company"
     host = host.replace("www.", "")
-    parts = [p for p in host.split(".") if p and p not in {"com", "ca", "co", "io", "jobs", "careers"}]
+    parts = [
+        p for p in host.split(".") if p and p not in {"com", "ca", "co", "io", "jobs", "careers"}
+    ]
     if not parts:
         parts = host.split(".")[:1]
     label = parts[0] if parts else "Company"
@@ -186,7 +187,9 @@ def extract_from_html(html: str, url: str) -> Job:
 
 
 def _fetch_html_httpx(url: str) -> str:
-    with httpx.Client(follow_redirects=True, timeout=12.0, headers={"User-Agent": USER_AGENT}) as client:
+    with httpx.Client(
+        follow_redirects=True, timeout=12.0, headers={"User-Agent": USER_AGENT}
+    ) as client:
         response = client.get(url)
         response.raise_for_status()
         return response.text
@@ -224,7 +227,9 @@ def _llm_refine(job: Job, html: str) -> Job | None:
     if _looks_complete(job):
         return None
 
-    api_key = (os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENROUTER_API_KEY") or "").strip()
+    api_key = (
+        os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENROUTER_API_KEY") or ""
+    ).strip()
     if not api_key:
         return None
 
@@ -314,7 +319,9 @@ def scrape_job_page(url: str) -> tuple[Job, list[LogEntry]]:
         selenium_html = _fetch_html_selenium(url)
         if selenium_html:
             html = selenium_html
-            logs.append(LogEntry(step="fetch_browser", message="Loaded page with headless browser."))
+            logs.append(
+                LogEntry(step="fetch_browser", message="Loaded page with headless browser.")
+            )
 
     if not html:
         company = _hostname_company(url)
@@ -352,7 +359,9 @@ def scrape_job_page(url: str) -> tuple[Job, list[LogEntry]]:
             )
         )
     elif _looks_complete(job):
-        logs.append(LogEntry(step="skip_ai", message="Page already had clear title/company — skipped AI."))
+        logs.append(
+            LogEntry(step="skip_ai", message="Page already had clear title/company — skipped AI.")
+        )
 
     logs.append(LogEntry(step="complete", message="Ready to save on your Wishlist."))
     return job, logs

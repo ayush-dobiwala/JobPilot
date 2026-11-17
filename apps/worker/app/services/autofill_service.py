@@ -178,9 +178,7 @@ def run_autofill(
     try:
         driver.get(review_url if _is_demo_form_url(request.formUrl) else request.formUrl)
         filler = resolve_filler(request.formUrl)
-        logs.append(
-            LogEntry(step="filler", message=f"Using {filler.__class__.__name__} for form.")
-        )
+        logs.append(LogEntry(step="filler", message=f"Using {filler.__class__.__name__} for form."))
         fill_logs = filler.fill(driver, request.applicant)
         logs.extend(fill_logs)
         driver.execute_script("window.scrollTo(0, 0);")

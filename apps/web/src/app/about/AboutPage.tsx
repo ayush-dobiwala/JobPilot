@@ -46,8 +46,8 @@ export function AboutPage() {
             Job search help that stays human
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-            JobPilot helps you keep every job application in one place and see how well a job matches
-            your resume. Safe form autofill is coming soon — without giving up control.
+            JobPilot helps you keep every job application in one place and see how well a job
+            matches your resume. Safe form autofill is coming soon — without giving up control.
           </p>
         </motion.div>
 
