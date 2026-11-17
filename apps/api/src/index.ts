@@ -3,6 +3,7 @@ import { Webhook } from "svix";
 import Stripe from "stripe";
 import { db } from "./db/client.js";
 import { createApp } from "./app.js";
+import { createClerkUserResolver } from "./lib/clerkUser.js";
 import { requireAuth } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { createBullMqQueue, createMemoryQueue } from "./queue/bullmq.js";
@@ -106,6 +107,7 @@ export const app = createApp({
   profiles: createProfilesService(db),
   requireAuth,
   rateLimit: rateLimit({ windowMs: 60_000, max: 120 }),
+  resolveClerkUser: createClerkUserResolver(process.env.CLERK_SECRET_KEY),
   verifyClerkWebhook,
   verifyStripeWebhook,
 });

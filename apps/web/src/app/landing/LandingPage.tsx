@@ -23,9 +23,9 @@ const helps = [
     icon: Sparkles,
   },
   {
-    title: "Fill applications faster — you approve",
+    title: "Autofill is on the way",
     description:
-      "JobPilot can fill common online job forms for you, then stop. You review everything and decide when to submit.",
+      "Application form fill + human approval is coming soon. Until then, track every role and score fit with AI.",
     icon: Wand2,
   },
 ] as const;
@@ -44,7 +44,7 @@ const steps = [
   {
     step: "3",
     title: "Score, organize, apply smarter",
-    body: "Check fit, move cards on your board, and use autofill when you’re ready.",
+    body: "Check fit, move cards on your board, and stay ready for autofill when it launches.",
   },
 ] as const;
 
@@ -122,8 +122,8 @@ export function LandingPage() {
               Your job search, finally in one calm place
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              JobPilot helps you track applications, see if a job matches your resume, and fill out
-              forms faster — you always review before anything is sent.
+              JobPilot helps you track applications and see if a job matches your resume — with
+              safe form autofill coming soon, always under your review.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="shadow-lg shadow-primary/25">
@@ -136,7 +136,7 @@ export function LandingPage() {
             <ul className="mt-8 space-y-2 text-sm text-muted-foreground">
               {[
                 "Free to try — no jargon, no setup headache",
-                "You approve before any application is submitted",
+                "Autofill coming soon — you will always approve before submit",
                 `Pro is $${PRO_MONTHLY_PRICE_USD}/month for unlimited resume–job match checks`,
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2">
@@ -270,8 +270,7 @@ export function LandingPage() {
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p className="text-3xl font-semibold text-foreground">$0</p>
                 <p>
-                  Application board, 5 match checks each month, and form-fill help with your
-                  approval.
+                  Application board, 5 match checks each month, and autofill when it launches.
                 </p>
               </CardContent>
             </Card>
@@ -284,7 +283,7 @@ export function LandingPage() {
                   ${PRO_MONTHLY_PRICE_USD}
                   <span className="text-base font-normal text-muted-foreground">/month</span>
                 </p>
-                <p>Unlimited match checks and faster automation when you’re applying a lot.</p>
+                <p>Unlimited match checks, plus early access to autofill when it ships.</p>
                 <Button asChild className="mt-2">
                   <Link to="/sign-up">Start free, upgrade later</Link>
                 </Button>

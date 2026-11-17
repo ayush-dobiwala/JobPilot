@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getClerkAppearance } from "@/lib/clerk";
 import { cn } from "@/lib/utils";
 import { useThemeStore } from "@/stores/theme";
@@ -19,7 +21,7 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/applications", label: "Applications", icon: Briefcase },
   { to: "/match-scorer", label: "Match Scorer", icon: Sparkles },
-  { to: "/automation", label: "Automation", icon: Bot },
+  { to: "/automation", label: "Automation", icon: Bot, soon: true },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/billing", label: "Billing", icon: CreditCard },
@@ -27,6 +29,8 @@ const nav = [
 
 export function AppShell() {
   const theme = useThemeStore((state) => state.theme);
+  // Ensure Postgres user row exists as soon as the signed-in shell mounts.
+  useCurrentUser();
 
   return (
     <div className="min-h-screen surface-atmosphere">
@@ -53,7 +57,12 @@ export function AppShell() {
                 }
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {"soon" in item && item.soon ? (
+                  <Badge className="h-5 border-border/60 bg-secondary px-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Soon
+                  </Badge>
+                ) : null}
               </NavLink>
             ))}
           </nav>
@@ -83,6 +92,11 @@ export function AppShell() {
               >
                 <item.icon className="h-3.5 w-3.5" />
                 {item.label}
+                {"soon" in item && item.soon ? (
+                  <span className="rounded bg-secondary px-1 text-[9px] uppercase text-muted-foreground">
+                    Soon
+                  </span>
+                ) : null}
               </NavLink>
             ))}
           </nav>

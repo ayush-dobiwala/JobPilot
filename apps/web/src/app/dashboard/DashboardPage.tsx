@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function DashboardPage() {
   const { user, status } = useCurrentUser();
-  const { summary, loading: analyticsLoading } = useAnalytics();
+  const { summary, loading: analyticsLoading, error: analyticsError } = useAnalytics();
 
   return (
     <div className="space-y-6">
@@ -14,6 +14,8 @@ export function DashboardPage() {
         <p className="text-sm text-muted-foreground">Your search command center.</p>
       </div>
 
+      {analyticsError ? <p className="text-sm text-destructive">{analyticsError}</p> : null}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
@@ -21,10 +23,10 @@ export function DashboardPage() {
             <CardDescription>Applications logged</CardDescription>
           </CardHeader>
           <CardContent>
-            {analyticsLoading || !summary ? (
+            {analyticsLoading ? (
               <Skeleton className="h-9 w-16" />
             ) : (
-              <p className="font-display text-3xl">{summary.applicationsThisWeek}</p>
+              <p className="font-display text-3xl">{summary?.applicationsThisWeek ?? 0}</p>
             )}
           </CardContent>
         </Card>
@@ -34,17 +36,17 @@ export function DashboardPage() {
             <CardDescription>Interview / applied pipeline</CardDescription>
           </CardHeader>
           <CardContent>
-            {analyticsLoading || !summary ? (
+            {analyticsLoading ? (
               <Skeleton className="h-9 w-16" />
             ) : (
-              <p className="font-display text-3xl">{summary.responseRate}%</p>
+              <p className="font-display text-3xl">{summary?.responseRate ?? 0}%</p>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Account</CardTitle>
-            <CardDescription>Provisioned from Clerk</CardDescription>
+            <CardDescription>Your JobPilot plan</CardDescription>
           </CardHeader>
           <CardContent>
             {status === "loading" || status === "idle" ? (
@@ -61,7 +63,7 @@ export function DashboardPage() {
             ) : null}
             {status === "missing" ? (
               <p className="text-sm text-muted-foreground">
-                Signed in, waiting on the Clerk webhook to create your row in Postgres.
+                Signed in, but your account row could not be created yet. Refresh once and try again.
               </p>
             ) : null}
             {status === "error" ? (

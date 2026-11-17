@@ -34,10 +34,10 @@ export function AnalyticsPage() {
             <CardDescription>Applications created</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading || !summary ? (
+            {loading ? (
               <Skeleton className="h-9 w-16" />
             ) : (
-              <p className="font-display text-3xl">{summary.applicationsThisWeek}</p>
+              <p className="font-display text-3xl">{summary?.applicationsThisWeek ?? 0}</p>
             )}
           </CardContent>
         </Card>
@@ -47,10 +47,10 @@ export function AnalyticsPage() {
             <CardDescription>Interview+offer+rejected / applied pipeline</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading || !summary ? (
+            {loading ? (
               <Skeleton className="h-9 w-16" />
             ) : (
-              <p className="font-display text-3xl">{summary.responseRate}%</p>
+              <p className="font-display text-3xl">{summary?.responseRate ?? 0}%</p>
             )}
           </CardContent>
         </Card>
@@ -60,11 +60,13 @@ export function AnalyticsPage() {
             <CardDescription>Created → applied timestamp</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading || !summary ? (
+            {loading ? (
               <Skeleton className="h-9 w-16" />
             ) : (
               <p className="font-display text-3xl">
-                {summary.averageDaysToResponse === null ? "—" : summary.averageDaysToResponse}
+                {summary?.averageDaysToResponse === null || summary?.averageDaysToResponse === undefined
+                  ? "—"
+                  : summary.averageDaysToResponse}
               </p>
             )}
           </CardContent>

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchProfile, updateProfile } from "@/lib/platformApi";
 
 export function SettingsPage() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,6 +23,13 @@ export function SettingsPage() {
   const [workAuthStatus, setWorkAuthStatus] = useState("");
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
     void (async () => {
       try {
         const token = await getToken();
@@ -30,6 +37,9 @@ export function SettingsPage() {
           return;
         }
         const data = await fetchProfile(token);
+        if (cancelled) {
+          return;
+        }
         setProfile(data);
         setPhone(data?.phone ?? "");
         setLocation(data?.location ?? "");
@@ -37,12 +47,20 @@ export function SettingsPage() {
         setPortfolioUrl(data?.portfolioUrl ?? "");
         setWorkAuthStatus(data?.workAuthStatus ?? "");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load profile");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load profile");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     })();
-  }, [getToken]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, isLoaded, isSignedIn]);
 
   async function onSave() {
     setSaving(true);
@@ -73,7 +91,9 @@ export function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Profile fields used by automation autofill.</p>
+        <p className="text-sm text-muted-foreground">
+          Your contact and work-auth defaults for applications (autofill coming soon).
+        </p>
       </div>
 
       <Card>

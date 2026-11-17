@@ -17,6 +17,7 @@ import type { BillingStore } from "./services/billing.js";
 import type { MatchScoreStore } from "./services/matchScore.js";
 import type { ProfileStore } from "./services/profiles.js";
 import type { ResumeStore } from "./services/resumes.js";
+import type { ResolveClerkUser } from "./lib/clerkUser.js";
 import type { UserStore } from "./services/users.js";
 import type { AppEnv } from "./types.js";
 
@@ -31,6 +32,7 @@ export interface CreateAppOptions {
   profiles: ProfileStore;
   requireAuth: MiddlewareHandler<AppEnv>;
   rateLimit: MiddlewareHandler<AppEnv>;
+  resolveClerkUser: ResolveClerkUser;
   verifyClerkWebhook: (payload: string, headers: Headers) => unknown;
   verifyStripeWebhook: (payload: string, signature: string) => unknown | Promise<unknown>;
 }
@@ -63,7 +65,7 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
   app.use("/api/*", options.rateLimit);
 
   app.route("/api/applications", createApplicationsRouter(options.applications));
-  app.route("/api/me", createMeRouter(options.users));
+  app.route("/api/me", createMeRouter(options.users, options.resolveClerkUser));
   app.route("/api/resumes", createResumesRouter(options.resumes));
   app.route("/api/match-score", createMatchScoreRouter(options.matchScore));
   app.route("/api/automation", createAutomationRouter(options.automation));

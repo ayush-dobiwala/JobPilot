@@ -9,7 +9,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createCheckoutSession, createPortalSession, fetchSubscription } from "@/lib/platformApi";
 
 export function BillingPage() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const { user } = useCurrentUser();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,20 +17,38 @@ export function BillingPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
     void (async () => {
       try {
         const token = await getToken();
         if (!token) {
           return;
         }
-        setSubscription(await fetchSubscription(token));
+        const data = await fetchSubscription(token);
+        if (!cancelled) {
+          setSubscription(data);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load billing");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load billing");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     })();
-  }, [getToken]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, isLoaded, isSignedIn]);
 
   async function upgrade() {
     setBusy(true);
@@ -87,7 +105,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>Kanban tracker + 5 match scores / month</p>
-            <p>Automation scrape + HITL autofill</p>
+            <p>Application autofill — coming soon</p>
             {plan === "free" ? <p className="text-foreground">Current plan</p> : null}
           </CardContent>
         </Card>
@@ -99,7 +117,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>Unlimited AI match scores</p>
-            <p>Priority automation throughput</p>
+            <p>Early access to autofill when it launches</p>
             {loading ? <Skeleton className="h-9 w-32" /> : null}
             {!loading && plan === "free" ? (
               <Button disabled={busy} onClick={() => void upgrade()}>

@@ -246,6 +246,10 @@ export function createTestApp(overrides: Partial<CreateAppOptions> = {}) {
     profiles: new MemoryProfileStore(),
     requireAuth: passthroughAuth,
     rateLimit: passthroughRateLimit,
+    resolveClerkUser: async (clerkUserId) => ({
+      email: `${clerkUserId}@example.com`,
+      name: "Test User",
+    }),
     verifyClerkWebhook: (payload) => JSON.parse(payload) as unknown,
     verifyStripeWebhook: () => ({ type: "test" }),
     ...overrides,

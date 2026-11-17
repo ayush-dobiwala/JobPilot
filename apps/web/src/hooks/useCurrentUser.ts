@@ -1,9 +1,7 @@
 import { useAuth } from "@clerk/clerk-react";
 import type { User } from "@jobpilot/shared-types";
 import { useEffect, useState } from "react";
-import { apiFetch, shouldKeepPolling } from "@/lib/api";
-
-const MAX_ATTEMPTS = 12;
+import { apiFetch } from "@/lib/api";
 
 export function useCurrentUser() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
@@ -16,12 +14,17 @@ export function useCurrentUser() {
     }
 
     let cancelled = false;
-    let attempts = 0;
     setStatus("loading");
 
-    const poll = async () => {
+    void (async () => {
       try {
         const token = await getToken();
+        if (!token) {
+          if (!cancelled) {
+            setStatus("error");
+          }
+          return;
+        }
         const response = await apiFetch("/api/me", token);
         if (cancelled) {
           return;
@@ -34,23 +37,14 @@ export function useCurrentUser() {
           return;
         }
 
-        attempts += 1;
-        if (shouldKeepPolling(response.status, attempts, MAX_ATTEMPTS)) {
-          window.setTimeout(() => {
-            void poll();
-          }, 1250);
-          return;
-        }
-
         setStatus(response.status === 404 ? "missing" : "error");
       } catch {
         if (!cancelled) {
           setStatus("error");
         }
       }
-    };
+    })();
 
-    void poll();
     return () => {
       cancelled = true;
     };

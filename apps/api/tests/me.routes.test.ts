@@ -15,9 +15,13 @@ describe("GET /api/me", () => {
     });
   });
 
-  it("returns 404 until the user is provisioned", async () => {
+  it("auto-provisions the current Clerk user when missing", async () => {
     const response = await app.request("/api/me");
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { email: string; plan: string; name: string | null };
+    expect(body.email).toBe("user_test@example.com");
+    expect(body.name).toBe("Test User");
+    expect(body.plan).toBe("free");
   });
 
   it("returns the provisioned user for the current Clerk id", async () => {
