@@ -6,7 +6,8 @@ import { createApp } from "./app.js";
 import { createClerkUserResolver } from "./lib/clerkUser.js";
 import { requireAuth } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rateLimit.js";
-import { createBullMqQueue, createMemoryQueue } from "./queue/bullmq.js";
+import { createMemoryQueue } from "./queue/memory.js";
+import type { JobQueue } from "./queue/types.js";
 import { createAnalyticsService } from "./services/analytics.js";
 import { createApplicationsService } from "./services/applications.js";
 import { createAutomationService, processAutomationJob } from "./services/automation.js";
@@ -72,22 +73,32 @@ function resolveMatchScorer(): { scorer: MatchScorer; label: string } {
   return { scorer: createMockMatchScorer(), label: "mock (no LLM key)" };
 }
 
+function resolveQueue(
+  redisUrl: string | undefined,
+  workerBaseUrl: string,
+): { queue: JobQueue; label: string } {
+  // BullMQ/ioredis currently hangs the Bun process on import locally.
+  // Keep Redis optional for later; local/dev uses the in-process memory queue.
+  if (redisUrl) {
+    console.warn(
+      "REDIS_URL is set, but BullMQ is disabled on Bun startup — using in-process memory queue.",
+    );
+  } else {
+    console.warn("REDIS_URL is not set — automation jobs run in-process via memory queue.");
+  }
+  return {
+    queue: createMemoryQueue((payload) => processAutomationJob(db, workerBaseUrl, payload)),
+    label: "memory",
+  };
+}
+
 const { scorer, label: scorerLabel } = resolveMatchScorer();
 console.log(`Match scorer: ${scorerLabel}`);
 
 const workerBaseUrl = process.env.WORKER_INTERNAL_URL ?? "http://localhost:8000";
-const redisUrl = process.env.REDIS_URL;
 const resumes = createResumesService(db);
-const queueBundle = redisUrl
-  ? createBullMqQueue(redisUrl, db, workerBaseUrl)
-  : {
-      queue: createMemoryQueue((payload) => processAutomationJob(db, workerBaseUrl, payload)),
-      worker: null,
-    };
-
-if (!redisUrl) {
-  console.warn("REDIS_URL is not set — automation jobs run in-process via memory queue.");
-}
+const queueBundle = resolveQueue(process.env.REDIS_URL, workerBaseUrl);
+console.log(`Queue: ${queueBundle.label}`);
 
 const billing = createBillingService({
   db,

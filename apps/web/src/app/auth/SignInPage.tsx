@@ -1,11 +1,18 @@
 import { SignIn } from "@clerk/clerk-react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { warmApi } from "@/lib/api";
 import { getClerkAppearance } from "@/lib/clerk";
 import { useThemeStore } from "@/stores/theme";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 export function SignInPage() {
   const theme = useThemeStore((state) => state.theme);
+
+  useEffect(() => {
+    // Start waking the API while the user types credentials.
+    warmApi();
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col surface-atmosphere">

@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import type { AnalyticsSummary, FunnelCounts } from "@jobpilot/shared-types";
+import { ApiTimeoutError } from "@/lib/api";
 import { fetchAnalyticsFunnel, fetchAnalyticsSummary } from "@/lib/platformApi";
 
 export function useAnalytics() {
@@ -40,7 +41,13 @@ export function useAnalytics() {
         setFunnel(funnelData);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load analytics");
+          const message =
+            err instanceof ApiTimeoutError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Failed to load analytics";
+          setError(message);
         }
       } finally {
         if (!cancelled) {

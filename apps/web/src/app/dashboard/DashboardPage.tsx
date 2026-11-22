@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function DashboardPage() {
-  const { user, status } = useCurrentUser();
+  const { user, status, errorMessage } = useCurrentUser();
   const { summary, loading: analyticsLoading, error: analyticsError } = useAnalytics();
 
   return (
@@ -69,7 +69,7 @@ export function DashboardPage() {
             ) : null}
             {status === "error" ? (
               <p className="text-sm text-destructive">
-                Could not reach the API. Is it running on :3001?
+                {errorMessage ?? "Could not reach the API. Is it running on :3001?"}
               </p>
             ) : null}
           </CardContent>

@@ -1,13 +1,14 @@
 import { PRO_MONTHLY_PRICE_USD } from "@jobpilot/shared-types";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, ClipboardList, Sparkles, Wand2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { warmApi } from "@/lib/api";
 
 const helps = [
   {
@@ -58,6 +59,10 @@ export function LandingPage() {
   const [columns, setColumns] = useState(
     demoColumns.map((column) => ({ ...column, items: [...column.items] })),
   );
+
+  useEffect(() => {
+    warmApi();
+  }, []);
 
   function moveCard(fromCol: string, item: string) {
     setColumns((prev) => {

@@ -1,11 +1,17 @@
 import { SignUp } from "@clerk/clerk-react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { warmApi } from "@/lib/api";
 import { getClerkAppearance } from "@/lib/clerk";
 import { useThemeStore } from "@/stores/theme";
 
 export function SignUpPage() {
   const theme = useThemeStore((state) => state.theme);
+
+  useEffect(() => {
+    warmApi();
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col surface-atmosphere">

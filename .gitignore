@@ -53,3 +53,6 @@ apps/worker/screenshots/
 # Supabase CLI local
 supabase/.branches
 supabase/.temp
+
+# local PDF generator deps
+.pdf-tools/

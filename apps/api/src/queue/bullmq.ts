@@ -3,6 +3,8 @@ import type { Database } from "../db/client.js";
 import { processAutomationJob } from "../services/automation.js";
 import type { AutomationJobName, AutomationJobPayload, JobQueue } from "./types.js";
 
+export { createMemoryQueue } from "./memory.js";
+
 const QUEUE_NAME = "jobpilot-automation";
 
 function redisConnection(redisUrl: string) {
@@ -12,20 +14,6 @@ function redisConnection(redisUrl: string) {
     port: Number(url.port || 6379),
     ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
     maxRetriesPerRequest: null as null,
-  };
-}
-
-export function createMemoryQueue(
-  processJob: (payload: AutomationJobPayload) => Promise<void>,
-): JobQueue {
-  return {
-    async add(_name, payload) {
-      // Process asynchronously so HTTP handlers can return runId immediately.
-      void processJob(payload);
-    },
-    async close() {
-      return;
-    },
   };
 }
 

@@ -12,7 +12,9 @@ import { NavLink, Outlet } from "react-router-dom";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useEffect } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { warmApi } from "@/lib/api";
 import { getClerkAppearance } from "@/lib/clerk";
 import { cn } from "@/lib/utils";
 import { useThemeStore } from "@/stores/theme";
@@ -29,8 +31,11 @@ const nav = [
 
 export function AppShell() {
   const theme = useThemeStore((state) => state.theme);
-  // Ensure Postgres user row exists as soon as the signed-in shell mounts.
+  // One shared /api/me load + wake free-tier API if it was sleeping.
   useCurrentUser();
+  useEffect(() => {
+    warmApi();
+  }, []);
 
   return (
     <div className="min-h-screen surface-atmosphere">

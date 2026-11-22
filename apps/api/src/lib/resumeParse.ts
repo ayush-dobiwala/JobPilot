@@ -1,6 +1,3 @@
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
-
 const MAX_BYTES = 5 * 1024 * 1024;
 
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".docx", ".doc"]);
@@ -36,6 +33,8 @@ export function assertAllowedResumeFile(filename: string, size: number): void {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  // Lazy-load: top-level pdf-parse import hangs Bun process startup.
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();
@@ -46,6 +45,8 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 }
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
+  // Lazy-load: top-level mammoth import can hang Bun process startup.
+  const mammoth = await import("mammoth");
   const result = await mammoth.extractRawText({ buffer });
   return result.value.trim();
 }
